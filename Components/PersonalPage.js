@@ -1,4 +1,6 @@
+import { useFocusEffect } from '@react-navigation/native';
 import { Button, Text, Card } from '@rneui/themed';
+import { useCallback } from 'react';
 import { useContext, useEffect, useState } from 'react';
 
 import { StyleSheet, View, Alert } from 'react-native';
@@ -38,9 +40,11 @@ export default function PersonalPage({ navigation }) {
             .catch(err => console.error(err));
     }
 
-    useEffect(() => {
-        fetchUser();
-    }, [loginData]);
+    useFocusEffect(
+        useCallback(() => {
+            fetchUser();
+        }, [loginData])
+    );
 
     return (
         <View style={styles.container}>

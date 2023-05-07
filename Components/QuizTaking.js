@@ -2,6 +2,7 @@ import { useContext, useEffect, useState } from "react";
 import { Button, Icon, AirbnbRating, Tooltip, Divider, ButtonGroup } from '@rneui/themed';
 import { StyleSheet, Text, View, Alert } from 'react-native';
 import { CountdownCircleTimer } from 'react-native-countdown-circle-timer';
+import { Vibration } from 'react-native';
 
 import AuthContext from "../context/AuthContext";
 
@@ -166,6 +167,11 @@ export default function QuizTaking({ route, navigation }) {
                         colors={['#899656', '#F7B801', '#A30000']}
                         colorsTime={[quiz.quiz.minutes * 40 - 1, quiz.quiz.minutes * 15 - 1, 0]}
                         onComplete={() => sendAttempt(answers)}
+                        onUpdate={(time) => {
+                            if (time === 5) {
+                                Vibration.vibrate([500, 500, 500, 500, 500, 500, 500, 500, 250, 250]);
+                            }
+                        }}
                     >
                         {({ remainingTime }) =>
                             <View style={{ alignItems: 'center' }}>
@@ -188,6 +194,7 @@ export default function QuizTaking({ route, navigation }) {
                     <Button
                         style={{ width: 150 }}
                         onPress={() => {
+                            Vibration.vibrate(1500);
                             setProcessStarted(true);
                             setStart(true);
                         }}
