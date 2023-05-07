@@ -1,8 +1,9 @@
 {
   "expo": {
-    "name": "nineth-app",
-    "slug": "nineth-app",
+    "name": "QuizHacker",
+    "slug": "QuizHacker",
     "version": "1.0.0",
+    "privacy": "public",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",

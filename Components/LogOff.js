@@ -1,4 +1,5 @@
 import { Avatar, BottomSheet, ListItem } from "@rneui/themed";
+import { useEffect } from "react";
 import { useContext, useState } from "react";
 import { Alert } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -7,7 +8,7 @@ import AuthContext from "../context/AuthContext";
 export default function LogOff({ navigation }) {
     const [isVisible, setIsVisible] = useState(false);
 
-    const { logOutData } = useContext(AuthContext);
+    const { logOutData, avatarURL } = useContext(AuthContext);
 
     const logOut = () => {
         logOutData();
@@ -36,13 +37,19 @@ export default function LogOff({ navigation }) {
     ];
     return (
         <SafeAreaProvider>
-            <Avatar
+            {!avatarURL && <Avatar
                 size={30}
                 rounded
                 icon={{ name: "user", type: "font-awesome", color: '#b0c1c8' }}
                 containerStyle={{ backgroundColor: "#fff" }}
                 onPress={() => setIsVisible(true)}
-            />
+            />}
+            {avatarURL && <Avatar
+                size={30}
+                rounded
+                source={{ uri: avatarURL }}
+                onPress={() => setIsVisible(true)}
+            />}
             <BottomSheet isVisible={isVisible} onBackdropPress={() => setIsVisible(false)}>
                 {list.map((item, index) => (
                     <ListItem
