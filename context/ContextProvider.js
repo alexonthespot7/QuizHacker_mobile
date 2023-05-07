@@ -7,12 +7,30 @@ function ContextProvider(props) {
     const [loginData, setLoginData] = useState(null);
     const [unverifiedId, setUnverifiedId] = useState(null);
     const [processStarted, setProcessStarted] = useState(false);
+    const [avatarURL, setAvatarURL] = useState(null);
+
+    const fetchAvatarURL = (id, token) => {
+        fetch('https://quiz-hacker-back.herokuapp.com/getavatar/' + id,
+            {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': token
+                }
+            })
+            .then(response => response.text())
+            .then(data => {
+                setAvatarURL(data);
+            })
+            .catch(err => console.error(err));
+    }
 
     async function fetchData() {
         const token = await AsyncStorage.getItem('jwt');
         const id = await AsyncStorage.getItem('id');
         const role = await AsyncStorage.getItem('role');
         if (token && id && role) {
+            fetchAvatarURL(id, token);
             setLoginData({ jwt: token, id: id, role: role });
         } else {
             setLoginData(null);
@@ -35,6 +53,7 @@ function ContextProvider(props) {
         await AsyncStorage.removeItem('id');
         await AsyncStorage.removeItem('role');
         await AsyncStorage.removeItem('unverifiedId');
+        setAvatarURL(null);
         fetchData();
     }
 
@@ -51,12 +70,19 @@ function ContextProvider(props) {
         fetchData();
     }
 
+
+
     useEffect(() => {
         fetchData();
     }, []);
 
     return (
-        <AuthContext.Provider value={{ unverifiedId, logOutData, loginData, loginMake, receiveUnverifiedId, removeUnverifiedId, processStarted, setProcessStarted }}>
+        <AuthContext.Provider
+            value={{
+                unverifiedId, logOutData, loginData, loginMake, receiveUnverifiedId,
+                removeUnverifiedId, processStarted, setProcessStarted, avatarURL, setAvatarURL
+            }}
+        >
             {props.children}
         </AuthContext.Provider>
     );

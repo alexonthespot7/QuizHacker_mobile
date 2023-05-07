@@ -18,6 +18,7 @@ import QuizCreation from './QuizCreation';
 import QuestionsCreation from './QuestionsCreation';
 import QuizTaking from './QuizTaking';
 import PublishedQuiz from './PublishedQuiz';
+import CameraScreen from './CameraScreen';
 
 const Drawer = createDrawerNavigator();
 const Stack = createStackNavigator(); // Create a new stack navigator
@@ -64,7 +65,7 @@ export default function Main() {
                             }
                             centerComponent={{ text: "QuizHacker", style: { fontSize: 20, color: 'white' } }}
                             rightComponent={
-                                loginData && loginData.jwt ? <LogOff navigation={navigation} /> : <SignIn navigation={navigation} />
+                                loginData && loginData.jwt && loginData.id ? <LogOff navigation={navigation} /> : <SignIn navigation={navigation} />
                             }
                         />
                 }}

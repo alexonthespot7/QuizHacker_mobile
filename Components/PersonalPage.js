@@ -1,11 +1,13 @@
 import { useFocusEffect } from '@react-navigation/native';
+import { Icon } from '@rneui/base';
 import { Button, Text, Card } from '@rneui/themed';
 import { useCallback } from 'react';
-import { useContext, useEffect, useState } from 'react';
+import { useContext, useState } from 'react';
 
 import { StyleSheet, View, Alert } from 'react-native';
 
 import AuthContext from '../context/AuthContext';
+import CameraScreen from './CameraScreen';
 
 export default function PersonalPage({ navigation }) {
     const [user, setUser] = useState({
@@ -75,12 +77,15 @@ export default function PersonalPage({ navigation }) {
                     <Text style={styles.propertyTitle}>Position:</Text>
                     <Text style={styles.propertyValue}>{user.position}</Text>
                 </View>}
-                <Button style={{ marginTop: 10 }} onPress={() => navigation.navigate('My Quizzes')}>
-                    My Quizzes
-                </Button>
+                <View style={{ marginTop: 10, flexDirection: 'row', justifyContent: 'space-around' }}>
+                    <Button style={{ width: 130 }} onPress={() => navigation.navigate('My Quizzes')}>
+                        My Quizzes
+                    </Button>
+                    <CameraScreen />
+                </View>
             </Card>}
-            {!dataFetched && <View style={{ justifyContent: 'center', flex: 1, alignItems: 'center' }}>
-                <Button title="Solid" type="solid" loading style={{ borderRadius: 25, width: 80, height: 80 }} />
+            {!dataFetched && <View style={styles.loading}>
+                <Button title="Solid" type="solid" loading style={styles.loadingButton} />
             </View>}
         </View >
     );
@@ -104,4 +109,14 @@ const styles = StyleSheet.create({
     propertyValue: {
         fontSize: 20
     },
+    loading: {
+        justifyContent: 'center',
+        flex: 1,
+        alignItems: 'center'
+    },
+    loadingButton: {
+        borderRadius: 25,
+        width: 80,
+        height: 80
+    }
 });

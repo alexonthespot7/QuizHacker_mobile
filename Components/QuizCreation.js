@@ -55,7 +55,6 @@ export default function QuizCreation({ route, navigation }) {
     }, []);
 
     const sendQuiz = () => {
-        console.log(quiz);
         fetch('https://quiz-hacker-back.herokuapp.com/updatequiz', {
             method: 'POST',
             headers: {
@@ -107,6 +106,18 @@ export default function QuizCreation({ route, navigation }) {
         navigation.navigate('QuestionsCreation', { quizId: quizId });
     }
 
+    const findDifficultyObjectById = (id) => {
+        for (let i = 0; i < difficulties.length; i++) {
+            if (difficulties[i].difficultyId === id) return difficulties[i];
+        }
+    }
+
+    const findCategoryObjectById = (id) => {
+        for (let i = 0; i < categories.length; i++) {
+            if (categories[i].categoryId === id) return categories[i];
+        }
+    }
+
     return (
         <View style={styles.container}>
             <Text style={styles.title}>{`Quiz №${quizId}`}</Text>
@@ -145,7 +156,7 @@ export default function QuizCreation({ route, navigation }) {
                         return item.name;
                     }}
                     renderDropdownIcon={() => <Icon name='chevron-down' type='feather' />}
-                    defaultValue={quiz.difficulty}
+                    defaultValue={findDifficultyObjectById(quiz.difficulty)}
                 />
                 <Text style={styles.propertyTitle}>
                     Category:
@@ -163,7 +174,7 @@ export default function QuizCreation({ route, navigation }) {
                         return item.name;
                     }}
                     renderDropdownIcon={() => <Icon name='chevron-down' type='feather' />}
-                    defaultValue={quiz.category}
+                    defaultValue={findCategoryObjectById(quiz.category)}
                     search
                 />
                 <Text style={styles.propertyTitle}>
