@@ -23,5 +23,12 @@ A React Native component that provides a countdown timer with a circular progres
 ### Rest API
 In the QuizHacker project, the REST API is used to fetch data from the server. The fetch() function is used to make HTTP requests to the server and retrieve JSON data in response.
 
-### Vibration API.
+### Vibration API
 This API allows web developers to access the vibration hardware of a device and trigger vibration patterns. In my case, the Vibration API is used to trigger a short vibration when the quiz process begins to provide feedback to the user and enhance their experience.
+
+### Expo Camera
+A library that provides a React component that renders a native camera view. In my project used to take photos for users' avatars.
+
+### Firebase Storage
+A cloud-based storage service that lets you store and retrieve user-generated content like photos, videos, and audio files. It provides a simple API for uploading and downloading files, and it integrates well with other Firebase services. In my project is used to store photos of the users.
+
