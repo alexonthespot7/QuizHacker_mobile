@@ -30,7 +30,12 @@ export default function Leaderboard() {
                         'Authorization': loginData.jwt
                     }
                 })
-                .then(response => response.json())
+                .then(response => {
+                    if (response.status === 401) {
+                        throw new Error('Unauthorized request');
+                    }
+                    return response.json();
+                })
                 .then(data => {
                     if (!data) {
                         Alert.alert('Please re-login')
@@ -39,7 +44,6 @@ export default function Leaderboard() {
                         setDataFetched(true);
                     }
                 })
-                .catch(err => console.error(err));
         }
     }
 

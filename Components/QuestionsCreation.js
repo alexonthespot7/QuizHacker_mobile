@@ -28,12 +28,16 @@ export default function QuestionsCreation({ route, navigation }) {
                 'Authorization': loginData.jwt
             }
         })
-            .then(response => response.json())
+            .then(response => {
+                if (response.status === 401) {
+                    throw new Error('Unauthorized request');
+                }
+                return response.json();
+            })
             .then(data => {
                 setQuestions(data);
                 setDataFetched(true);
             })
-            .catch(error => console.error(error));
     }
 
     useEffect(() => {
