@@ -77,7 +77,12 @@ export default function Quizzes({ navigation }) {
                         'Authorization': loginData.jwt
                     }
                 })
-                .then(response => response.json())
+                .then(response => {
+                    if (response.status === 401) {
+                        throw new Error('Unauthorized request');
+                    }
+                    return response.json();
+                })
                 .then(data => {
                     if (data) {
                         setQuizzes(data);
@@ -87,7 +92,6 @@ export default function Quizzes({ navigation }) {
                         Alert.alert('Please re-login');
                     }
                 })
-                .catch(err => console.error(err));
         }
     }
 
