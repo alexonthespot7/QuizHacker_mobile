@@ -62,7 +62,7 @@ function ContextProvider(props) {
                 if (data) {
                     setAvatarURL(data);
                 } else {
-                    Alert.alert('Please re-login to prove your identity');
+                    setAvatarURL(null);
                 }
                 setFetchingAvatar(false);
             })
