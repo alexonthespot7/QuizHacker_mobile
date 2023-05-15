@@ -3,7 +3,7 @@ import { initializeApp } from "firebase/app";
 import { getStorage } from 'firebase/storage';
 
 const firebaseConfig = {
-    //firebase credentials
+    //firebase configs
 };
 
 // Initialize Firebase
