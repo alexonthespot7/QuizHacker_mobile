@@ -44,7 +44,7 @@ function ContextProvider(props) {
     }
 
     const fetchAvatarURL = (id, token) => {
-        fetch('https://quiz-hacker-back.herokuapp.com/getavatar/' + id,
+        fetch(`${process.env.REACT_APP_API_URL}/getavatar/${id}`,
             {
                 method: 'GET',
                 headers: {

@@ -14,7 +14,7 @@ export default function Leaderboard() {
 
     const fetchLeaderboard = () => {
         if (!loginData || !loginData.jwt || !loginData.id) {
-            fetch('https://quiz-hacker-back.herokuapp.com/users')
+            fetch(`${process.env.REACT_APP_API_URL}/users`)
                 .then(response => response.json())
                 .then(data => {
                     setLeaderboard(data);
@@ -22,7 +22,7 @@ export default function Leaderboard() {
                 })
                 .catch(err => console.error(err));
         } else {
-            fetch('https://quiz-hacker-back.herokuapp.com/usersauth/' + loginData.id,
+            fetch(`${process.env.REACT_APP_API_URL}/usersauth/${loginData.id}`,
                 {
                     method: 'GET',
                     headers: {

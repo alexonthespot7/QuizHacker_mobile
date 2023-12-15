@@ -22,7 +22,7 @@ export default function PersonalPage({ navigation }) {
     const { loginData } = useContext(AuthContext);
 
     const fetchUser = () => {
-        fetch('https://quiz-hacker-back.herokuapp.com/users/' + loginData.id,
+        fetch(`${process.env.REACT_APP_API_URL}/users/${loginData.id}`,
             {
                 method: 'GET',
                 headers: {

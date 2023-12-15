@@ -44,7 +44,7 @@ export default function Quizzes({ navigation }) {
     );
 
     const fetchCategories = () => {
-        fetch('https://quiz-hacker-back.herokuapp.com/categories')
+        fetch(`${process.env.REACT_APP_API_URL}/categories`)
             .then(response => response.json())
             .then(data => {
                 const cats = data;
@@ -60,7 +60,7 @@ export default function Quizzes({ navigation }) {
 
     const fetchQuizzes = () => {
         if (!loginData || !loginData.jwt || !loginData.id) {
-            fetch('https://quiz-hacker-back.herokuapp.com/quizzes')
+            fetch(`${process.env.REACT_APP_API_URL}/quizzes`)
                 .then(response => response.json())
                 .then(data => {
                     setQuizzes(data);
@@ -69,7 +69,7 @@ export default function Quizzes({ navigation }) {
                 })
                 .catch(err => console.error(err));
         } else {
-            fetch('https://quiz-hacker-back.herokuapp.com/quizzesbyuser/' + loginData.id,
+            fetch(`${process.env.REACT_APP_API_URL}/quizzesbyuser/${loginData.id}`,
                 {
                     method: 'GET',
                     headers: {

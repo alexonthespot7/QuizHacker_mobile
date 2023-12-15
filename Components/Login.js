@@ -20,7 +20,7 @@ export default function Login({ navigation }) {
     const { unverifiedId, loginMake, receiveUnverifiedId, removeUnverifiedId } = useContext(AuthContext);
 
     const loginReq = () => {
-        fetch('https://quiz-hacker-back.herokuapp.com/login', {
+        fetch(`${process.env.REACT_APP_API_URL}/login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(user)
@@ -79,7 +79,7 @@ export default function Login({ navigation }) {
     }
 
     const verifyReq = () => {
-        fetch('https://quiz-hacker-back.herokuapp.com/verify/' + unverifiedId, {
+        fetch(`${process.env.REACT_APP_API_URL}/verify/${unverifiedId}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(code)

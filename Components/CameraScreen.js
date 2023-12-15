@@ -19,7 +19,6 @@ export default function CameraScreen() {
 
     const { loginData, avatarURL, setAvatarURL } = useContext(AuthContext);
 
-
     useEffect(() => {
         (async () => {
             const { status } = await Camera.requestCameraPermissionsAsync();
@@ -32,11 +31,11 @@ export default function CameraScreen() {
             const photoData = await camera.takePictureAsync({ quality: 0.5 });
             setPhoto(photoData);
         }
-    };
+    }
 
     const flipCamera = () => {
         setCameraType(cameraType === Camera.Constants.Type.back ? Camera.Constants.Type.front : Camera.Constants.Type.back);
-    };
+    }
 
     if (hasPermission === null) {
         return <View />;
@@ -51,14 +50,14 @@ export default function CameraScreen() {
 
     const handleCapturePressIn = () => {
         setFlash(true);
-    };
+    }
 
     const handleCapturePressOut = () => {
         setFlash(false);
-    };
+    }
 
     const uploadUR = (downloadURL) => {
-        fetch('https://quiz-hacker-back.herokuapp.com/updateavatar/' + loginData.id, {
+        fetch(`${process.env.REACT_APP_API_URL}/updateavatar/${loginData.id}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

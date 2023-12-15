@@ -20,7 +20,7 @@ export default function QuizCreation({ route, navigation }) {
     const { loginData } = useContext(AuthContext);
 
     const fetchQuiz = () => {
-        fetch('https://quiz-hacker-back.herokuapp.com/quizzes/' + quizId)
+        fetch(`${process.env.REACT_APP_API_URL}/quizzes/${quizId}`)
             .then(response => response.json())
             .then(data => {
                 const quizRating = data;
@@ -30,7 +30,7 @@ export default function QuizCreation({ route, navigation }) {
     }
 
     const fetchDifficulties = () => {
-        fetch('https://quiz-hacker-back.herokuapp.com/difficulties')
+        fetch(`${process.env.REACT_APP_API_URL}/difficulties`)
             .then(response => response.json())
             .then(data => {
                 setDifficulties(data);
@@ -39,7 +39,7 @@ export default function QuizCreation({ route, navigation }) {
     }
 
     const fetchCategories = () => {
-        fetch('https://quiz-hacker-back.herokuapp.com/categories')
+        fetch(`${process.env.REACT_APP_API_URL}/categories`)
             .then(response => response.json())
             .then(data => {
                 setCategories(data);
@@ -55,7 +55,7 @@ export default function QuizCreation({ route, navigation }) {
     }, []);
 
     const sendQuiz = () => {
-        fetch('https://quiz-hacker-back.herokuapp.com/updatequiz', {
+        fetch(`${process.env.REACT_APP_API_URL}/updatequiz`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

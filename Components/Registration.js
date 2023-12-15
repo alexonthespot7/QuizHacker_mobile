@@ -23,7 +23,7 @@ export default function Registration() {
     const { unverifiedId, receiveUnverifiedId, removeUnverifiedId } = useContext(AuthContext);
 
     const loginReq = () => {
-        fetch('https://quiz-hacker-back.herokuapp.com/signup', {
+        fetch(`${process.env.REACT_APP_API_URL}/signup`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(user)
@@ -76,7 +76,7 @@ export default function Registration() {
     }
 
     const verifyReq = () => {
-        fetch('https://quiz-hacker-back.herokuapp.com/verify/' + unverifiedId, {
+        fetch(`${process.env.REACT_APP_API_URL}/verify/${unverifiedId}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: code

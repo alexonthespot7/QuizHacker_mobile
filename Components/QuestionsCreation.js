@@ -23,7 +23,7 @@ export default function QuestionsCreation({ route, navigation }) {
     const { loginData } = useContext(AuthContext);
 
     const fetchQuestions = () => {
-        fetch('https://quiz-hacker-back.herokuapp.com/questions/' + quizId, {
+        fetch(`${process.env.REACT_APP_API_URL}/questions/${quizId}`, {
             headers: {
                 'Authorization': loginData.jwt
             }

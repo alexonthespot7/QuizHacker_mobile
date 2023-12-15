@@ -44,7 +44,7 @@ export default function PersonalQuizzes({ navigation }) {
     );
 
     const fetchCategories = () => {
-        fetch('https://quiz-hacker-back.herokuapp.com/categories')
+        fetch(`${process.env.REACT_APP_API_URL}/categories`)
             .then(response => response.json())
             .then(data => {
                 const cats = data;
@@ -59,7 +59,7 @@ export default function PersonalQuizzes({ navigation }) {
     }
 
     const fetchQuizzes = () => {
-        fetch('https://quiz-hacker-back.herokuapp.com/personalquizzes/' + loginData.id,
+        fetch(`${process.env.REACT_APP_API_URL}/personalquizzes/${loginData.id}`,
             {
                 method: 'GET',
                 headers: {
@@ -138,7 +138,7 @@ export default function PersonalQuizzes({ navigation }) {
 
     const createQuiz = () => {
         setDataFetched(false);
-        fetch('https://quiz-hacker-back.herokuapp.com/createquiz', {
+        fetch(`${process.env.REACT_APP_API_URL}/createquiz`, {
             method: 'GET',
             headers: {
                 'Authorization': loginData.jwt
@@ -163,7 +163,7 @@ export default function PersonalQuizzes({ navigation }) {
 
     const deleteItem = (quizId) => {
         console.log(quizId);
-        fetch('https://quiz-hacker-back.herokuapp.com/deletequiz/' + quizId, {
+        fetch(`${process.env.REACT_APP_API_URL}/deletequiz/${quizId}`, {
             method: 'DELETE',
             headers: {
                 'Authorization': loginData.jwt

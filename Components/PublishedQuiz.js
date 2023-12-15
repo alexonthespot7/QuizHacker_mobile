@@ -18,7 +18,7 @@ export default function PublishedQuiz({ route, navigation }) {
 
 
     const fetchQuestions = () => {
-        fetch('https://quiz-hacker-back.herokuapp.com/questions/' + quizId)
+        fetch(`${process.env.REACT_APP_API_URL}/questions/${quizId}`)
             .then(response => response.json())
             .then(data => {
                 setQuestions(data);
@@ -28,7 +28,7 @@ export default function PublishedQuiz({ route, navigation }) {
     }
 
     const fetchQuiz = () => {
-        fetch('https://quiz-hacker-back.herokuapp.com/quizzes/' + quizId)
+        fetch(`${process.env.REACT_APP_API_URL}/quizzes/${quizId}`)
             .then(response => response.json())
             .then(data => {
                 setQuiz(data);
