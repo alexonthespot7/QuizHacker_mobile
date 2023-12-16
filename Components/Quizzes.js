@@ -25,7 +25,7 @@ export default function Quizzes({ navigation }) {
     });
     const [filterOverlay, setFilterOverlay] = useState(false);
     const [categories, setCategories] = useState([]);
-    const { loginData } = useContext(AuthContext);
+    const { loginData, backEndUrl } = useContext(AuthContext);
 
     const filteredQuizzes = quizzes.filter(
         quiz => {
@@ -44,7 +44,7 @@ export default function Quizzes({ navigation }) {
     );
 
     const fetchCategories = () => {
-        fetch(`${process.env.REACT_APP_API_URL}/categories`)
+        fetch(`${backEndUrl}/categories`)
             .then(response => response.json())
             .then(data => {
                 const cats = data;
@@ -60,7 +60,7 @@ export default function Quizzes({ navigation }) {
 
     const fetchQuizzes = () => {
         if (!loginData || !loginData.jwt || !loginData.id) {
-            fetch(`${process.env.REACT_APP_API_URL}/quizzes`)
+            fetch(`${backEndUrl}/quizzes`)
                 .then(response => response.json())
                 .then(data => {
                     setQuizzes(data);
@@ -69,7 +69,7 @@ export default function Quizzes({ navigation }) {
                 })
                 .catch(err => console.error(err));
         } else {
-            fetch(`${process.env.REACT_APP_API_URL}/quizzesbyuser/${loginData.id}`,
+            fetch(`${backEndUrl}/quizzesbyuser/${loginData.id}`,
                 {
                     method: 'GET',
                     headers: {

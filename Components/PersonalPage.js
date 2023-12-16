@@ -19,10 +19,10 @@ export default function PersonalPage({ navigation }) {
     });
     const [dataFetched, setDataFetched] = useState(false);
 
-    const { loginData } = useContext(AuthContext);
+    const { loginData, backEndUrl } = useContext(AuthContext);
 
     const fetchUser = () => {
-        fetch(`${process.env.REACT_APP_API_URL}/users/${loginData.id}`,
+        fetch(`${backEndUrl}/users/${loginData.id}`,
             {
                 method: 'GET',
                 headers: {

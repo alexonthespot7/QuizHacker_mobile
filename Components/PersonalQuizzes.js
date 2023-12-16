@@ -25,7 +25,7 @@ export default function PersonalQuizzes({ navigation }) {
     const [filterOverlay, setFilterOverlay] = useState(false);
     const [categories, setCategories] = useState([]);
 
-    const { loginData } = useContext(AuthContext);
+    const { loginData, backEndUrl } = useContext(AuthContext);
 
     const filteredQuizzes = quizzes.filter(
         quiz => {
@@ -44,7 +44,7 @@ export default function PersonalQuizzes({ navigation }) {
     );
 
     const fetchCategories = () => {
-        fetch(`${process.env.REACT_APP_API_URL}/categories`)
+        fetch(`${backEndUrl}/categories`)
             .then(response => response.json())
             .then(data => {
                 const cats = data;
@@ -59,7 +59,7 @@ export default function PersonalQuizzes({ navigation }) {
     }
 
     const fetchQuizzes = () => {
-        fetch(`${process.env.REACT_APP_API_URL}/personalquizzes/${loginData.id}`,
+        fetch(`${backEndUrl}/personalquizzes/${loginData.id}`,
             {
                 method: 'GET',
                 headers: {
@@ -138,8 +138,8 @@ export default function PersonalQuizzes({ navigation }) {
 
     const createQuiz = () => {
         setDataFetched(false);
-        fetch(`${process.env.REACT_APP_API_URL}/createquiz`, {
-            method: 'GET',
+        fetch(`${backEndUrl}/createquiz`, {
+            method: 'POST',
             headers: {
                 'Authorization': loginData.jwt
             }
@@ -152,7 +152,7 @@ export default function PersonalQuizzes({ navigation }) {
                 } else if (response.status === 401) {
                     Alert.alert('Please re-login');
                 } else {
-                    setProgress(false);
+                    setDataFetched(false);
                     Alert.alert('Something went wrong');
                 }
             })
@@ -163,7 +163,7 @@ export default function PersonalQuizzes({ navigation }) {
 
     const deleteItem = (quizId) => {
         console.log(quizId);
-        fetch(`${process.env.REACT_APP_API_URL}/deletequiz/${quizId}`, {
+        fetch(`${backEndUrl}/deletequiz/${quizId}`, {
             method: 'DELETE',
             headers: {
                 'Authorization': loginData.jwt

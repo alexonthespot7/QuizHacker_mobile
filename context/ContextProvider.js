@@ -11,6 +11,8 @@ function ContextProvider(props) {
     const [avatarURL, setAvatarURL] = useState(null);
     const [fetchingAvatar, setFetchingAvatar] = useState(false);
 
+    const backEndUrl = 'https://quiz-hacker-back-end.onrender.com/api';
+
     async function fetchData() {
         const token = await AsyncStorage.getItem('jwt');
         const id = await AsyncStorage.getItem('id');
@@ -44,7 +46,7 @@ function ContextProvider(props) {
     }
 
     const fetchAvatarURL = (id, token) => {
-        fetch(`${process.env.REACT_APP_API_URL}/getavatar/${id}`,
+        fetch(`${backEndUrl}/getavatar/${id}`,
             {
                 method: 'GET',
                 headers: {
@@ -108,7 +110,8 @@ function ContextProvider(props) {
         <AuthContext.Provider
             value={{
                 unverifiedId, logOutData, loginData, loginMake, receiveUnverifiedId,
-                removeUnverifiedId, processStarted, setProcessStarted, avatarURL, setAvatarURL
+                removeUnverifiedId, processStarted, setProcessStarted, avatarURL, setAvatarURL,
+                backEndUrl
             }}
         >
             {props.children}

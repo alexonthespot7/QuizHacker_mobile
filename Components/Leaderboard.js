@@ -10,11 +10,11 @@ import { useCallback } from "react";
 export default function Leaderboard() {
     const [leaderboard, setLeaderboard] = useState(null);
     const [dataFetched, setDataFetched] = useState(false);
-    const { loginData } = useContext(AuthContext);
+    const { loginData, backEndUrl } = useContext(AuthContext);
 
     const fetchLeaderboard = () => {
         if (!loginData || !loginData.jwt || !loginData.id) {
-            fetch(`${process.env.REACT_APP_API_URL}/users`)
+            fetch(`${backEndUrl}/users`)
                 .then(response => response.json())
                 .then(data => {
                     setLeaderboard(data);
@@ -22,7 +22,7 @@ export default function Leaderboard() {
                 })
                 .catch(err => console.error(err));
         } else {
-            fetch(`${process.env.REACT_APP_API_URL}/usersauth/${loginData.id}`,
+            fetch(`${backEndUrl}/usersauth/${loginData.id}`,
                 {
                     method: 'GET',
                     headers: {

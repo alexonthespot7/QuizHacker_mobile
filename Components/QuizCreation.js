@@ -17,10 +17,10 @@ export default function QuizCreation({ route, navigation }) {
     const [descriptionError, setDescriptionError] = useState(false);
     const [errorText, setErrorText] = useState('');
 
-    const { loginData } = useContext(AuthContext);
+    const { loginData, backEndUrl } = useContext(AuthContext);
 
     const fetchQuiz = () => {
-        fetch(`${process.env.REACT_APP_API_URL}/quizzes/${quizId}`)
+        fetch(`${backEndUrl}/quizzes/${quizId}`)
             .then(response => response.json())
             .then(data => {
                 const quizRating = data;
@@ -30,7 +30,7 @@ export default function QuizCreation({ route, navigation }) {
     }
 
     const fetchDifficulties = () => {
-        fetch(`${process.env.REACT_APP_API_URL}/difficulties`)
+        fetch(`${backEndUrl}/difficulties`)
             .then(response => response.json())
             .then(data => {
                 setDifficulties(data);
@@ -39,7 +39,7 @@ export default function QuizCreation({ route, navigation }) {
     }
 
     const fetchCategories = () => {
-        fetch(`${process.env.REACT_APP_API_URL}/categories`)
+        fetch(`${backEndUrl}/categories`)
             .then(response => response.json())
             .then(data => {
                 setCategories(data);
@@ -55,8 +55,8 @@ export default function QuizCreation({ route, navigation }) {
     }, []);
 
     const sendQuiz = () => {
-        fetch(`${process.env.REACT_APP_API_URL}/updatequiz`, {
-            method: 'POST',
+        fetch(`${backEndUrl}/updatequiz/${quizId}`, {
+            method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': loginData.jwt

@@ -17,7 +17,7 @@ export default function CameraScreen() {
     const [isVisible, setIsVisible] = useState(false);
     const [flash, setFlash] = useState(false);
 
-    const { loginData, avatarURL, setAvatarURL } = useContext(AuthContext);
+    const { loginData, avatarURL, setAvatarURL, backEndUrl } = useContext(AuthContext);
 
     useEffect(() => {
         (async () => {
@@ -57,8 +57,8 @@ export default function CameraScreen() {
     }
 
     const uploadUR = (downloadURL) => {
-        fetch(`${process.env.REACT_APP_API_URL}/updateavatar/${loginData.id}`, {
-            method: 'POST',
+        fetch(`${backEndUrl}/updateavatar/${loginData.id}`, {
+            method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': loginData.jwt

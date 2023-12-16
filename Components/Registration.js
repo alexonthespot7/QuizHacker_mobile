@@ -4,7 +4,7 @@ import { useContext, useState } from 'react';
 import { StyleSheet, View, Alert } from 'react-native';
 import AuthContext from '../context/AuthContext';
 
-export default function Registration() {
+export default function Registration({ navigation }) {
     const [user, setUser] = useState({
         username: "",
         email: '',
@@ -20,26 +20,37 @@ export default function Registration() {
     const [codeError, setCodeError] = useState(false);
     const [verify, setVerify] = useState(false);
 
-    const { unverifiedId, receiveUnverifiedId, removeUnverifiedId } = useContext(AuthContext);
+    const { unverifiedId, receiveUnverifiedId, removeUnverifiedId, backEndUrl } = useContext(AuthContext);
 
     const loginReq = () => {
-        fetch(`${process.env.REACT_APP_API_URL}/signup`, {
+        fetch(`${backEndUrl}/signup`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(user)
         })
             .then(response => {
                 if (response.ok) {
-                    const unverifiedId = response.headers.get('Host');
-                    receiveUnverifiedId(unverifiedId);
-                    setUser({
-                        username: '',
-                        email: '',
-                        password: ''
-                    });
-                    setLoading(false);
-                    setVerify(true);
-                    Alert.alert('The verification code was sent to your email');
+                    if (response.status === 200) {
+                        const unverifiedId = response.headers.get('Host');
+                        receiveUnverifiedId(unverifiedId);
+                        setUser({
+                            username: '',
+                            email: '',
+                            password: ''
+                        });
+                        setLoading(false);
+                        setVerify(true);
+                        Alert.alert('The verification code was sent to your email');
+                    } else {
+                        setUser({
+                            username: '',
+                            email: '',
+                            password: ''
+                        });
+                        setLoading(false);
+                        navigation.navigate('Login');
+                        Alert.alert('Registration went well. You can login now');
+                    }
                 } else if (response.status === 406) {
                     setLoading(false);
                     setEmailError(true);
@@ -76,8 +87,8 @@ export default function Registration() {
     }
 
     const verifyReq = () => {
-        fetch(`${process.env.REACT_APP_API_URL}/verify/${unverifiedId}`, {
-            method: 'POST',
+        fetch(`${backEndUrl}/verify/${unverifiedId}`, {
+            method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: code
         })

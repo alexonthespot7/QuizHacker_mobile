@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { Button, Icon, AirbnbRating, Tooltip, Divider } from '@rneui/themed';
 import { StyleSheet, Text, View } from 'react-native';
 import { CountdownCircleTimer } from 'react-native-countdown-circle-timer';
+import AuthContext from "../context/AuthContext";
 
 
 export default function PublishedQuiz({ route, navigation }) {
@@ -16,9 +17,10 @@ export default function PublishedQuiz({ route, navigation }) {
 
     const [tooltipOpen, setTooltipOpen] = useState(false);
 
+    const { backEndUrl } = useContext(AuthContext);
 
     const fetchQuestions = () => {
-        fetch(`${process.env.REACT_APP_API_URL}/questions/${quizId}`)
+        fetch(`${backEndUrl}/questions/${quizId}`)
             .then(response => response.json())
             .then(data => {
                 setQuestions(data);
@@ -28,7 +30,7 @@ export default function PublishedQuiz({ route, navigation }) {
     }
 
     const fetchQuiz = () => {
-        fetch(`${process.env.REACT_APP_API_URL}/quizzes/${quizId}`)
+        fetch(`${backEndUrl}/quizzes/${quizId}`)
             .then(response => response.json())
             .then(data => {
                 setQuiz(data);

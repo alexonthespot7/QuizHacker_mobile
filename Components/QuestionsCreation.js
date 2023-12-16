@@ -1,5 +1,5 @@
 import { useContext, useEffect, useState } from "react";
-import { StyleSheet, View, FlatList, Alert } from 'react-native';
+import { StyleSheet, View, FlatList, Alert, KeyboardAvoidingView } from 'react-native';
 import { Text, Button, Icon, ListItem, Overlay } from '@rneui/themed';
 import AuthContext from "../context/AuthContext";
 
@@ -20,10 +20,10 @@ export default function QuestionsCreation({ route, navigation }) {
         index: -1
     });
 
-    const { loginData } = useContext(AuthContext);
+    const { loginData, backEndUrl } = useContext(AuthContext);
 
     const fetchQuestions = () => {
-        fetch(`${process.env.REACT_APP_API_URL}/questions/${quizId}`, {
+        fetch(`${backEndUrl}/questions/${quizId}`, {
             headers: {
                 'Authorization': loginData.jwt
             }
@@ -45,7 +45,7 @@ export default function QuestionsCreation({ route, navigation }) {
     }, []);
 
     const fetchDeleteQuestion = (questionId, index) => {
-        fetch('https://quiz-hacker-back.herokuapp.com/deletequestion/' + questionId, {
+        fetch(`${backEndUrl}/deletequestion/${questionId}`, {
             method: 'DELETE',
             headers: {
                 'Authorization': loginData.jwt
@@ -78,7 +78,7 @@ export default function QuestionsCreation({ route, navigation }) {
 
     const toggleOverlay = () => {
         setVisible(!visible);
-    };
+    }
 
     const saveAnswers = () => {
         setDataSaved(false);
@@ -152,8 +152,8 @@ export default function QuestionsCreation({ route, navigation }) {
 
     const saveAll = () => {
         setDataFetched(false);
-        fetch('https://quiz-hacker-back.herokuapp.com/savequestions/' + questions[0].quiz.quizId, {
-            method: 'POST',
+        fetch(`${backEndUrl}/savequestions/${questions[0].quiz.quizId}`, {
+            method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': loginData.jwt
@@ -162,6 +162,7 @@ export default function QuestionsCreation({ route, navigation }) {
         })
             .then(response => {
                 if (response.ok) {
+                    fetchQuestions();
                     setDataFetched(true);
                     setDataSaved(true);
                 } else if (response.status === 401) {
@@ -179,8 +180,8 @@ export default function QuestionsCreation({ route, navigation }) {
 
     const publishQuiz = () => {
         setDataFetched(false);
-        fetch('https://quiz-hacker-back.herokuapp.com/publishquiz/' + questions[0].quiz.quizId, {
-            method: 'POST',
+        fetch(`${backEndUrl}/publishquiz/${questions[0].quiz.quizId}`, {
+            method: 'PUT',
             headers: {
                 'Authorization': loginData.jwt
             }
@@ -203,142 +204,146 @@ export default function QuestionsCreation({ route, navigation }) {
     }
 
     return (
-        <View style={styles.container}>
-            {dataFetched && questions[0] && <View style={{ flex: 0.9 }}>
-                <Text style={styles.title}>
-                    {questions[0].quiz.title}
-                </Text>
-                <FlatList
-                    style={{ marginLeft: "5%" }}
-                    renderItem={({ item, index }) =>
-                        <ListItem.Swipeable
-                            bottomDivider
-                            rightContent={() => (
-                                <Button
-                                    containerStyle={{
-                                        flex: 1,
-                                        backgroundColor: '#f4f4f4',
-                                        justifyContent: 'center'
-                                    }}
-                                    type="clear"
-                                    icon={{ name: 'delete-outline', size: 34 }}
-                                    onPress={() => deleteItem(item.questionId, index)}
-                                />
-                            )}
-                        >
-                            <ListItem.Content >
-                                <ListItem.Input
-                                    rightIcon={<Icon name="edit" />}
-                                    textAlign='left'
-                                    label={`Question ${index + 1}`}
-                                    placeholder='Question'
-                                    onChangeText={text => changeQuestionText(text, index)}
-                                    value={item.text}
-                                />
-                                <Button
-                                    size='sm'
-                                    icon={
-                                        <Icon
-                                            name="check"
-                                            type="font-awesome"
-                                            color="white"
-                                            size={14}
-                                            iconStyle={{ marginRight: 5 }}
-                                        />
-                                    }
-                                    title="Answers"
-                                    onPress={() => openAnswersOverlay(item, index)}
-                                />
-                            </ListItem.Content>
-                        </ListItem.Swipeable>
-                    }
-                    keyExtractor={item => item.questionId}
-                    data={questions}
-                />
-                <View style={{ alignItems: 'center', gap: 20, marginTop: 10 }}>
-                    <Button
-                        onPress={addQuestion}
-                        style={styles.button}
-                    >
-                        <Icon name="add" color="white" style={{ marginRight: 10 }} />
-                        Question
-                    </Button>
-                    {!dataSaved &&
-                        <Button
-                            onPress={saveAll}
-                            style={styles.button}
-                        >
-                            <Icon name='save' color='white' style={{ marginRight: 5 }} />
-                            Save
-                        </Button>
-                    }
-                    {dataSaved &&
-                        <Button
-                            style={styles.button}
-                            onPress={publishQuiz}
-                        >
-                            Publish
-                        </Button>
-                    }
-                </View>
-                <Overlay isVisible={visible} onBackdropPress={toggleOverlay} overlayStyle={{ flex: 0.7, width: '90%' }}>
-                    <Text style={styles.textPrimary}>Edit answers:</Text>
-                    <Text style={styles.textSecondary}>
-                        {currentQuestion.question.text}
+        <KeyboardAvoidingView behavior="padding" enabled style={styles.container}>
+            {dataFetched && questions[0] &&
+                <View style={{ flex: 0.9 }}>
+                    <Text style={styles.title}>
+                        {questions[0].quiz.title}
                     </Text>
                     <FlatList
                         style={{ marginLeft: "5%" }}
                         renderItem={({ item, index }) =>
-                            <ListItem key={index} bottomDivider>
-                                <ListItem.Content style={{ flexDirection: 'row', alignItems: 'center' }}>
+                            <ListItem.Swipeable
+                                bottomDivider
+                                rightContent={() => (
+                                    <Button
+                                        containerStyle={{
+                                            flex: 1,
+                                            backgroundColor: '#f4f4f4',
+                                            justifyContent: 'center'
+                                        }}
+                                        type="clear"
+                                        icon={{ name: 'delete-outline', size: 34 }}
+                                        onPress={() => deleteItem(item.questionId, index)}
+                                    />
+                                )}
+                            >
+                                <ListItem.Content >
                                     <ListItem.Input
-                                        leftIcon={<Icon name="edit" />}
+                                        rightIcon={<Icon name="edit" />}
                                         textAlign='left'
-                                        label={`Answer ${index + 1}`}
-                                        placeholder="Answer"
-                                        onChangeText={text => changeAnswerText(text, index)}
+                                        label={`Question ${index + 1}`}
+                                        placeholder='Question'
+                                        onChangeText={text => changeQuestionText(text, index)}
                                         value={item.text}
                                     />
-                                    <ListItem.CheckBox
-                                        checked={item.correct}
-                                        onPress={() => changeCorrect(index)}
-                                        checkedIcon="dot-circle-o"
-                                        checkedColor="green"
-                                        uncheckedIcon="circle-o"
+                                    <Button
+                                        size='sm'
+                                        icon={
+                                            <Icon
+                                                name="check"
+                                                type="font-awesome"
+                                                color="white"
+                                                size={14}
+                                                iconStyle={{ marginRight: 5 }}
+                                            />
+                                        }
+                                        title="Answers"
+                                        onPress={() => openAnswersOverlay(item, index)}
                                     />
                                 </ListItem.Content>
-                            </ListItem>
+                            </ListItem.Swipeable>
                         }
-                        keyExtractor={item => item.answerId}
-                        data={currentQuestion.question.answers}
+                        keyExtractor={item => item.questionId}
+                        data={questions}
                     />
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-around' }}>
+                    <View style={{ alignItems: 'center', gap: 20, marginTop: 10 }}>
                         <Button
-                            icon={
-                                <Icon
-                                    name="save"
-                                    type="font-awesome"
-                                    color="white"
-                                    size={18}
-                                    iconStyle={{ marginRight: 7 }}
-                                />
-                            }
-                            title="Save"
-                            onPress={saveAnswers}
-                        />
-                        <Button
-                            onPress={toggleOverlay}
+                            onPress={addQuestion}
+                            style={styles.button}
                         >
-                            <Icon size={18} name="cancel" color="white" style={{ marginRight: 5 }} />
-                            Cancel
+                            <Icon name="add" color="white" style={{ marginRight: 10 }} />
+                            Question
                         </Button>
+                        {!dataSaved &&
+                            <Button
+                                onPress={saveAll}
+                                style={styles.button}
+                            >
+                                <Icon name='save' color='white' style={{ marginRight: 5 }} />
+                                Save
+                            </Button>
+                        }
+                        {dataSaved &&
+                            <Button
+                                style={styles.button}
+                                onPress={publishQuiz}
+                            >
+                                Publish
+                            </Button>
+                        }
                     </View>
-                </Overlay>
-            </View>}
-            {!dataFetched && <View style={{ justifyContent: 'center', flex: 1, alignItems: 'center' }}>
-                <Button title="Solid" type="solid" loading style={{ borderRadius: 25, width: 80, height: 80 }} />
-            </View>}
-        </View>
+                    <Overlay isVisible={visible} onBackdropPress={toggleOverlay} overlayStyle={{ flex: 0.7, width: '90%' }}>
+                        <Text style={styles.textPrimary}>Edit answers:</Text>
+                        <Text style={styles.textSecondary}>
+                            {currentQuestion.question.text}
+                        </Text>
+                        <FlatList
+                            style={{ marginLeft: "5%" }}
+                            renderItem={({ item, index }) =>
+                                <ListItem key={index} bottomDivider>
+                                    <ListItem.Content style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                        <ListItem.Input
+                                            leftIcon={<Icon name="edit" />}
+                                            textAlign='left'
+                                            label={`Answer ${index + 1}`}
+                                            placeholder="Answer"
+                                            onChangeText={text => changeAnswerText(text, index)}
+                                            value={item.text}
+                                        />
+                                        <ListItem.CheckBox
+                                            checked={item.correct}
+                                            onPress={() => changeCorrect(index)}
+                                            checkedIcon="dot-circle-o"
+                                            checkedColor="green"
+                                            uncheckedIcon="circle-o"
+                                        />
+                                    </ListItem.Content>
+                                </ListItem>
+                            }
+                            keyExtractor={item => item.answerId}
+                            data={currentQuestion.question.answers}
+                        />
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-around' }}>
+                            <Button
+                                icon={
+                                    <Icon
+                                        name="save"
+                                        type="font-awesome"
+                                        color="white"
+                                        size={18}
+                                        iconStyle={{ marginRight: 7 }}
+                                    />
+                                }
+                                title="Save"
+                                onPress={saveAnswers}
+                            />
+                            <Button
+                                onPress={toggleOverlay}
+                            >
+                                <Icon size={18} name="cancel" color="white" style={{ marginRight: 5 }} />
+                                Cancel
+                            </Button>
+                        </View>
+                    </Overlay>
+                </View>
+            }
+            {
+                !dataFetched && <View style={{ justifyContent: 'center', flex: 1, alignItems: 'center' }}>
+                    <Button title="Solid" type="solid" loading style={{ borderRadius: 25, width: 80, height: 80 }} />
+                </View>
+            }
+        </KeyboardAvoidingView>
     );
 }
 

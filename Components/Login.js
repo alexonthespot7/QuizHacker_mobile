@@ -17,10 +17,10 @@ export default function Login({ navigation }) {
     const [code, setCode] = useState('');
     const [codeError, setCodeError] = useState(false);
 
-    const { unverifiedId, loginMake, receiveUnverifiedId, removeUnverifiedId } = useContext(AuthContext);
+    const { unverifiedId, loginMake, receiveUnverifiedId, removeUnverifiedId, backEndUrl } = useContext(AuthContext);
 
     const loginReq = () => {
-        fetch(`${process.env.REACT_APP_API_URL}/login`, {
+        fetch(`${backEndUrl}/login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(user)
@@ -55,7 +55,7 @@ export default function Login({ navigation }) {
                     setVerify(true);
                     Alert.alert('The verification code was sent to your email');
                 } else {
-                    setProgress(false);
+                    setLoading(false);
                     Alert.alert('Something went wrong');
                 }
             })
@@ -79,8 +79,8 @@ export default function Login({ navigation }) {
     }
 
     const verifyReq = () => {
-        fetch(`${process.env.REACT_APP_API_URL}/verify/${unverifiedId}`, {
-            method: 'POST',
+        fetch(`${backEndUrl}/verify/${unverifiedId}`, {
+            method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(code)
         })

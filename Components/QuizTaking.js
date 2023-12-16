@@ -24,10 +24,10 @@ export default function QuizTaking({ route, navigation }) {
     const [rated, setRated] = useState(false);
     const [score, setScore] = useState(0);
 
-    const { loginData, setProcessStarted } = useContext(AuthContext);
+    const { loginData, setProcessStarted, backEndUrl } = useContext(AuthContext);
 
     const fetchQuestions = () => {
-        fetch(`${process.env.REACT_APP_API_URL}/questions/${quizId}`)
+        fetch(`${backEndUrl}/questions/${quizId}`)
             .then(response => response.json())
             .then(data => {
                 setQuestions(data);
@@ -37,7 +37,7 @@ export default function QuizTaking({ route, navigation }) {
     }
 
     const fetchQuiz = () => {
-        fetch(`${process.env.REACT_APP_API_URL}/quizzes/${quizId}`)
+        fetch(`${backEndUrl}/quizzes/${quizId}`)
             .then(response => response.json())
             .then(data => {
                 setQuiz(data);
@@ -72,6 +72,7 @@ export default function QuizTaking({ route, navigation }) {
             });
             setAnswers(newAnswers);
             if (newAnswers.length === questions.length) {
+                Vibration.cancel();
                 sendAttempt(newAnswers);
             }
         } else {
@@ -81,7 +82,7 @@ export default function QuizTaking({ route, navigation }) {
 
     const submitFetch = () => {
         setDataFetched(false);
-        fetch('https://quiz-hacker-back.herokuapp.com/sendattempt/' + quizId, {
+        fetch(`${backEndUrl}/sendattempt/${quizId}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
