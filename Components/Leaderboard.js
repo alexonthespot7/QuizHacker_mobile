@@ -6,44 +6,57 @@ import { Button, Icon, ListItem } from '@rneui/themed';
 import AuthContext from "../context/AuthContext";
 import { useFocusEffect } from "@react-navigation/native";
 import { useCallback } from "react";
+import Loading from "./Loading";
 
 export default function Leaderboard() {
     const [leaderboard, setLeaderboard] = useState(null);
     const [dataFetched, setDataFetched] = useState(false);
-    const { loginData, backEndUrl } = useContext(AuthContext);
+    const { loginData, backEndUrl, handleBadResponse, handleResponseWithData } = useContext(AuthContext);
 
     const fetchLeaderboard = () => {
+        setDataFetched(false);
         if (!loginData || !loginData.jwt || !loginData.id) {
-            fetch(`${backEndUrl}/users`)
-                .then(response => response.json())
-                .then(data => {
-                    setLeaderboard(data);
-                    setDataFetched(true);
-                })
-                .catch(err => console.error(err));
+            fetchNoAuth();
         } else {
-            fetch(`${backEndUrl}/usersauth/${loginData.id}`,
+            fetchWithAuth()
+        }
+    }
+
+    const handleLeaderboardData = (data) => {
+        setLeaderboard(data);
+        setDataFetched(true);
+    }
+
+    const fetchNoAuth = async () => {
+        try {
+            const response = await fetch(`${backEndUrl}/users`);
+            if (!response.ok) {
+                Alert.alert('Something was wrong, try again later');
+                return null;
+            }
+            handleResponseWithData(response, handleLeaderboardData);
+        } catch (error) {
+            Alert.alert('Something was wrong, try again later');
+        }
+    }
+
+    const fetchWithAuth = async () => {
+        try {
+            const response = await fetch(`${backEndUrl}/usersauth/${loginData.id}`,
                 {
                     method: 'GET',
                     headers: {
                         'Content-Type': 'application/json',
                         'Authorization': loginData.jwt
                     }
-                })
-                .then(response => {
-                    if (response.status === 401) {
-                        throw new Error('Unauthorized request');
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    if (!data) {
-                        Alert.alert('Please re-login')
-                    } else {
-                        setLeaderboard(data);
-                        setDataFetched(true);
-                    }
-                })
+                });
+            if (!response.ok) {
+                handleBadResponse(response);
+                return null;
+            }
+            handleResponseWithData(response, handleLeaderboardData);
+        } catch (error) {
+            Alert.alert('Something was wrong, try again later');
         }
     }
 
@@ -53,82 +66,104 @@ export default function Leaderboard() {
         }, [loginData])
     );
 
+    const renderListItem = (item, index) => {
+        const authUserPosition = leaderboard.position;
+        const currentPosition = index < 10 ? index + 1 : authUserPosition;
+
+        const isNotInTopEleven = authUserPosition > 11;
+        const isSamePosition = currentPosition === leaderboard.position;
+        const isCurrentEleventhPosition = currentPosition > 10;
+        const isCurrentGreaterThanThird = currentPosition > 3;
+
+        // If the current authenticated user is not in the top eleven players we should show first 10 players and then dots and then current auth user's position
+        const showDots = isNotInTopEleven && isCurrentEleventhPosition;
+
+        const iconName = currentPosition === 1 ? 'trophy' : 'medal';
+
+        const iconColor = currentPosition === 1
+            ? 'gold'
+            : currentPosition === 2
+                ? 'silver'
+                : '#CD7F32';
+
+        const ratingFontSize = currentPosition === 1
+            ? 24 : currentPosition === 2
+                ? 22 : currentPosition === 3
+                    ? 21 : 20;
+
+        const ratingFontWeight = currentPosition === 1 ? 'bold' : 'normal';
+
+        return (
+            <ListItem>
+                <ListItem.Content
+                    style={{
+                        ...styles.listItemContainer,
+                        marginTop: showDots ? 25 : 0
+                    }}
+                >
+                    {showDots &&
+                        <View style={{ position: 'absolute', top: -45 }}>
+                            <Icon name='more-horiz' size={40} />
+                        </View>
+                    }
+                    {isCurrentGreaterThanThird &&
+                        <Text style={{ ...styles.positionContainer, fontSize: 20, color: '#555555' }}>
+                            {currentPosition}
+                            {isSamePosition && <Icon type='font-awesome-5' name='star' color='gold' solid={true} size={20} style={{ marginLeft: 5 }} />}
+                        </Text>
+                    }
+                    {!isCurrentGreaterThanThird &&
+                        <View style={{ ...styles.positionContainer, flexDirection: 'row' }}>
+                            <Icon type='font-awesome-5' name={iconName} color={iconColor} />
+                            {isSamePosition && <Icon type='font-awesome-5' name='star' color='gold' solid={true} size={20} style={{ marginLeft: 5 }} />}
+                        </View>
+                    }
+                    <Text style={{ fontSize: 20, color: '#555555' }}>
+                        {item.username}
+                    </Text>
+                    <Text
+                        style={{
+                            ...styles.score,
+                            fontWeight: ratingFontWeight,
+                            fontSize: ratingFontSize
+                        }}
+                    >
+                        {item.rating}
+                    </Text>
+                </ListItem.Content>
+            </ListItem>
+        );
+    }
+
     return (
         <View style={styles.container}>
-            {dataFetched && <View>
-                <Text style={styles.title}>
-                    Leaderboard
-                </Text>
-                <View style={styles.headersContainer}>
-                    <Text style={{ ...styles.propertyTitle, position: 'absolute', left: 0, }}>
-                        Position:
+            {dataFetched &&
+                <View style={{ marginBottom: 125 }}>
+                    <Text style={styles.title}>
+                        Leaderboard
                     </Text>
-                    <Text style={styles.propertyTitle}>
-                        Username:
-                    </Text>
-                    <Text style={{ ...styles.propertyTitle, position: 'absolute', right: '2.5%' }}>
-                        Score:
-                    </Text>
+                    <View style={styles.headersContainer}>
+                        <Text style={{ ...styles.propertyTitle, position: 'absolute', left: 0, }}>
+                            Position:
+                        </Text>
+                        <Text style={styles.propertyTitle}>
+                            Username:
+                        </Text>
+                        <Text style={{ ...styles.propertyTitle, position: 'absolute', right: '2.5%' }}>
+                            Score:
+                        </Text>
+                    </View>
+                    <FlatList
+                        style={{ marginHorizontal: "2%" }}
+                        renderItem={({ item, index }) => renderListItem(item, index)}
+                        keyExtractor={item => item.username}
+                        data={leaderboard.users}
+                    />
                 </View>
-                <FlatList
-                    style={{ marginHorizontal: "2.5%" }}
-                    renderItem={({ item, index }) =>
-                        <ListItem>
-                            <ListItem.Content
-                                style={{
-                                    ...styles.listItemContainer,
-                                    marginTop: leaderboard.position > 10 && index + 1 !== leaderboard.position && index === 10 ? 25 : 0
-                                }}
-                            >
-                                {leaderboard.position > 10 && index + 1 !== leaderboard.position && index === 10 &&
-                                    <View style={{ position: 'absolute', top: -45 }}>
-                                        <Icon name='more-horiz' size={40} />
-                                    </View>
-                                }
-                                {index + 1 > 3 && <Text style={{ ...styles.positionContainer, fontSize: 20, color: '#555555' }}>
-                                    {index !== 10 ? index + 1 : leaderboard.position}
-                                    {(index + 1 === leaderboard.position || (index + 1 === 11 && leaderboard.position > 10)) && <Icon type='font-awesome-5' name='star' color='gold' solid={true} size={20} style={{ marginLeft: 5 }} />}
-                                </Text>}
-                                {index + 1 === 1 &&
-                                    <View style={{ ...styles.positionContainer, flexDirection: 'row' }}>
-                                        <Icon type='font-awesome-5' name='trophy' color='gold' />
-                                        {(index + 1 === leaderboard.position) && <Icon type='font-awesome-5' name='star' color='gold' solid={true} size={20} style={{ marginLeft: 5 }} />}
-                                    </View>
-                                }
-                                {index === 1 &&
-                                    <View style={{ ...styles.positionContainer, flexDirection: 'row' }}>
-                                        <Icon type='font-awesome-5' name='medal' color='silver' />
-                                        {(index + 1 === leaderboard.position) && <Icon type='font-awesome-5' name='star' color='gold' solid={true} size={20} style={{ marginLeft: 5 }} />}
-                                    </View>
-                                }
-                                {index === 2 &&
-                                    <View style={{ ...styles.positionContainer, flexDirection: 'row' }}>
-                                        <Icon type='font-awesome-5' name='medal' color='#CD7F32' />
-                                        {(index + 1 === leaderboard.position) && <Icon type='font-awesome-5' name='star' color='gold' solid={true} size={20} style={{ marginLeft: 5 }} />}
-                                    </View>
-                                }
-                                <Text style={{ fontSize: 20, color: '#555555' }}>
-                                    {item.username}
-                                </Text>
-                                <Text
-                                    style={{
-                                        ...styles.score,
-                                        fontWeight: index === 0 ? 'bold' : 'normal',
-                                        fontSize: index === 0 ? 24 : index === 1 ? 22 : index === 2 ? 21 : 20
-                                    }}
-                                >
-                                    {item.rating}
-                                </Text>
-                            </ListItem.Content>
-                        </ListItem>
-                    }
-                    keyExtractor={item => item.username}
-                    data={leaderboard.users}
-                />
-            </View>}
-            {!dataFetched && <View style={styles.loading}>
-                <Button title="Solid" type="solid" loading style={styles.loadingButton} />
-            </View>}
+            }
+            {!dataFetched && //Loading sign
+                <Loading />
+            }
         </View>
     );
 }
@@ -163,16 +198,6 @@ const styles = StyleSheet.create({
         fontSize: 20,
         fontWeight: 'bold',
         color: '#b1b8be'
-    },
-    loading: {
-        justifyContent: 'center',
-        flex: 1,
-        alignItems: 'center'
-    },
-    loadingButton: {
-        borderRadius: 25,
-        width: 80,
-        height: 80
     },
     positionContainer: {
         position: 'absolute',

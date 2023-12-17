@@ -6,7 +6,6 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 export default function SignIn({ navigation }) {
     const [isVisible, setIsVisible] = useState(false);
 
-
     const navigateTo = (path) => {
         navigation.navigate(path);
         setIsVisible(false);
@@ -26,6 +25,7 @@ export default function SignIn({ navigation }) {
             onPress: () => navigateTo('Login'),
         },
     ];
+
     return (
         <SafeAreaProvider>
             <Icon

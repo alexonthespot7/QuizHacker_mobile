@@ -17,7 +17,7 @@ export default function CameraScreen() {
     const [isVisible, setIsVisible] = useState(false);
     const [flash, setFlash] = useState(false);
 
-    const { loginData, avatarURL, setAvatarURL, backEndUrl } = useContext(AuthContext);
+    const { loginData, avatarURL, setAvatarURL, backEndUrl, handleBadResponse } = useContext(AuthContext);
 
     useEffect(() => {
         (async () => {
@@ -56,30 +56,31 @@ export default function CameraScreen() {
         setFlash(false);
     }
 
-    const uploadUR = (downloadURL) => {
-        fetch(`${backEndUrl}/updateavatar/${loginData.id}`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': loginData.jwt
-            },
-            body: downloadURL
-        })
-            .then(response => {
-                if (response.ok) {
-                    setAvatarURL(downloadURL);
-                    setIsVisible(false);
-                    setPhoto(null);
-                    Alert.alert('Your profile avatar photo was updated successfully');
-                } else if (response.status === 401) {
-                    Alert.alert('Please re-login to prove your identity');
-                } else {
-                    Alert.alert('Something went wrong');
-                }
-            })
-            .catch(error => {
-                console.error(error);
+    const handleGoodResponse = (downloadURL) => {
+        setAvatarURL(downloadURL);
+        setIsVisible(false);
+        setPhoto(null);
+        Alert.alert('Your profile avatar photo was updated successfully');
+    }
+
+    const uploadUR = async (downloadURL) => {
+        try {
+            const response = await fetch(`${backEndUrl}/updateavatar/${loginData.id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': loginData.jwt
+                },
+                body: downloadURL
             });
+            if (!response.ok) {
+                handleBadResponse(response);
+                return null;
+            }
+            handleGoodResponse(downloadURL);
+        } catch (error) {
+            Alert.alert('Your profile avatar photo cannot be saved right now');
+        }
     }
 
 
@@ -112,46 +113,57 @@ export default function CameraScreen() {
 
     return (
         <View>
-            <Button color='#e6f7ff' titleStyle={{ color: '#4183d1', width: 100 }} onPress={() => setIsVisible(true)}>
+            <Button color='#e6f7ff' titleStyle={styles.photoButton} onPress={() => setIsVisible(true)}>
                 <Icon name='camera' type='font-awesome-5' color='#4183d1' />
                 Photo
             </Button>
-            <Overlay isVisible={isVisible} onBackdropPress={toggleOverlay} overlayStyle={{ height: 300, width: 300, borderRadius: 500, position: 'absolute', top: '30%' }}>
-                {!photo && <View>
-                    <Camera style={styles.camera} type={cameraType} ref={(ref) => setCamera(ref)}>
-                    </Camera>
-                    <View style={styles.buttonsContainer}>
-                        <TouchableOpacity style={styles.flipButton} onPress={() => flipCamera()}>
-                            <Icon name="flip-camera-ios" type='material' size={40} color="white" />
-                        </TouchableOpacity>
-                        <TouchableWithoutFeedback onPressIn={() => handleCapturePressIn()} onPressOut={() => handleCapturePressOut()} onPress={() => takePicture()}>
-                            <View style={[styles.captureButton, flash && styles.flashButton]} >
-                            </View>
-                        </TouchableWithoutFeedback>
-                        <TouchableOpacity style={styles.cancelButton} onPress={() => toggleOverlay()}>
-                            <Icon name="cancel" type='material' size={40} color="white" />
-                        </TouchableOpacity>
+            <Overlay isVisible={isVisible} onBackdropPress={toggleOverlay} overlayStyle={styles.overlayStyle}>
+                {!photo && //Photo taking screen (if the photo wasn't taken)
+                    <View>
+                        <Camera style={styles.camera} type={cameraType} ref={(ref) => setCamera(ref)} />
+                        <View style={styles.buttonsContainer}>
+                            <TouchableOpacity style={styles.flipButton} onPress={() => flipCamera()}>
+                                <Icon name="flip-camera-ios" type='material' size={40} color="white" />
+                            </TouchableOpacity>
+                            <TouchableWithoutFeedback onPressIn={() => handleCapturePressIn()} onPressOut={() => handleCapturePressOut()} onPress={() => takePicture()}>
+                                <View style={[styles.captureButton, flash && styles.flashButton]} >
+                                </View>
+                            </TouchableWithoutFeedback>
+                            <TouchableOpacity style={styles.cancelButton} onPress={() => toggleOverlay()}>
+                                <Icon name="cancel" type='material' size={40} color="white" />
+                            </TouchableOpacity>
+                        </View>
                     </View>
-                </View>}
-                {photo && <View>
-                    <Image source={{ uri: photo.uri }} style={styles.photo} />
-                    <View style={{ justifyContent: 'space-between', flexDirection: 'row', marginTop: 15, marginHorizontal: 5 }}>
-                        <TouchableOpacity onPress={publishPhoto}>
-                            <Icon style={{ borderRadius: 100 }} name="check" type='materail-community' backgroundColor='#e6f7ff' size={40} color="green" />
-                        </TouchableOpacity>
-                        <TouchableOpacity onPress={() => setPhoto(null)}>
-                            <Icon style={{ borderRadius: 100 }} name="x" backgroundColor='#e6f7ff' type='feather' size={40} color="red" />
-                        </TouchableOpacity>
+                }
+                {photo && //photo saving screen (if the photo was already taken)
+                    <View>
+                        <Image source={{ uri: photo.uri }} style={styles.photo} />
+                        <View style={styles.confirmIconsContainer}>
+                            <TouchableOpacity onPress={publishPhoto}>
+                                <Icon style={styles.icon} name="check" type='materail-community' backgroundColor='#e6f7ff' size={40} color="green" />
+                            </TouchableOpacity>
+                            <TouchableOpacity onPress={() => setPhoto(null)}>
+                                <Icon style={styles.icon} name="x" backgroundColor='#e6f7ff' type='feather' size={40} color="red" />
+                            </TouchableOpacity>
+                        </View>
                     </View>
-                </View>}
+                }
             </Overlay>
         </View>
     );
 }
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
+    photoButton: {
+        color: '#4183d1',
+        width: 100
+    },
+    overlayStyle: {
+        height: 300,
+        width: 300,
+        borderRadius: 500,
+        position: 'absolute',
+        top: '30%'
     },
     buttonsContainer: {
         position: 'absolute',
@@ -195,4 +207,11 @@ const styles = StyleSheet.create({
         borderWidth: 2,
         marginBottom: 15,
     },
+    confirmIconsContainer: {
+        justifyContent: 'space-between',
+        flexDirection: 'row',
+        marginTop: 15,
+        marginHorizontal: 5
+    },
+    icon: { borderRadius: 100 }
 });

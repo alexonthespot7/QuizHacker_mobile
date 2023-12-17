@@ -5,6 +5,7 @@ import { CountdownCircleTimer } from 'react-native-countdown-circle-timer';
 import { Vibration } from 'react-native';
 
 import AuthContext from "../context/AuthContext";
+import Loading from "./Loading";
 
 export default function QuizTaking({ route, navigation }) {
     const { quizId } = route.params;
@@ -24,26 +25,42 @@ export default function QuizTaking({ route, navigation }) {
     const [rated, setRated] = useState(false);
     const [score, setScore] = useState(0);
 
-    const { loginData, setProcessStarted, backEndUrl } = useContext(AuthContext);
+    const { loginData, setProcessStarted, backEndUrl, handleBadResponse, handleResponseWithData } = useContext(AuthContext);
 
-    const fetchQuestions = () => {
-        fetch(`${backEndUrl}/questions/${quizId}`)
-            .then(response => response.json())
-            .then(data => {
-                setQuestions(data);
-                setDataFetched(true);
-            })
-            .catch(error => console.error(error));
+    const handleQuestionsData = (data) => {
+        setQuestions(data);
+        setDataFetched(true);
     }
 
-    const fetchQuiz = () => {
-        fetch(`${backEndUrl}/quizzes/${quizId}`)
-            .then(response => response.json())
-            .then(data => {
-                setQuiz(data);
-                fetchQuestions();
-            })
-            .catch(error => console.error(error));
+    const fetchQuestions = async () => {
+        try {
+            const response = await fetch(`${backEndUrl}/questions/${quizId}`);
+            if (!response.ok) {
+                Alert.alert('Something was wrong, try again later');
+                return null;
+            }
+            handleResponseWithData(response, handleQuestionsData);
+        } catch (error) {
+            Alert.alert('Something was wrong, try again later');
+        }
+    }
+
+    const handleQuizData = (data) => {
+        setQuiz(data);
+        fetchQuestions();
+    }
+
+    const fetchQuiz = async () => {
+        try {
+            const response = await fetch(`${backEndUrl}/quizzes/${quizId}`);
+            if (!response.ok) {
+                Alert.alert('Something was wrong, try again later');
+                return null;
+            }
+            handleResponseWithData(response, handleQuizData);
+        } catch (error) {
+            Alert.alert('Something was wrong, try again later');
+        }
     }
 
     useEffect(() => {
@@ -80,39 +97,34 @@ export default function QuizTaking({ route, navigation }) {
         }
     }
 
-    const submitFetch = () => {
+    const fetchSendAttempt = async () => {
         setDataFetched(false);
-        fetch(`${backEndUrl}/sendattempt/${quizId}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': loginData.jwt
-            },
-            body: JSON.stringify({ attemptAnswers: answers, rating: rating })
-        })
-            .then(response => {
-                if (response.ok) {
-                    setScore(response.headers.get('Host'));
-                    setDataFetched(true);
-                    setRated(true);
-                } else if (response.status === 401) {
-                    setDataFetched(true);
-                    Alert.alert('Please re-login to prove your identity');
-                } else {
-                    setDataFetched(true);
-                    Alert.alert('Something went wrong');
-                }
-            })
-            .catch(error => {
-                console.error(error);
+        try {
+            const response = await fetch(`${backEndUrl}/sendattempt/${quizId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': loginData.jwt
+                },
+                body: JSON.stringify({ attemptAnswers: answers, rating: rating })
             });
+            if (!response.ok) {
+                handleBadResponse(response);
+                return null;
+            }
+            setScore(response.headers.get('Host'));
+            setDataFetched(true);
+            setRated(true);
+        } catch (error) {
+            Alert.alert('Something was wrong, try again later');
+        }
     }
 
     const submitAll = () => {
         if (rating === 0) {
             Alert.alert('Please rate the quiz first');
         } else {
-            submitFetch();
+            fetchSendAttempt();
         }
     }
 
@@ -122,184 +134,182 @@ export default function QuizTaking({ route, navigation }) {
 
     return (
         <View style={styles.container}>
-            {dataFetched && quiz && questions.length > 0 && <View style={{ flex: 1 }}>
-                <Text style={styles.title}>
-                    {`${quiz.quiz.title}`}
-                </Text>
-                <AirbnbRating
-                    isDisabled={true}
-                    defaultRating={quiz.rating === null ? 0 : quiz.rating}
-                    showRating={false}
-                    size={30}
-                />
-                <View style={styles.propertyRowContainer}>
-                    <View style={styles.propertyContainer}>
-                        <Text style={styles.propertyTitle}>Description:</Text>
-                        <Tooltip
-                            visible={tooltipOpen}
-                            onOpen={() => {
-                                setTooltipOpen(true);
+            {dataFetched &&
+                <View style={{ flex: 1 }}>
+                    <Text style={styles.title}>
+                        {`${quiz.quiz.title}`}
+                    </Text>
+                    <AirbnbRating
+                        isDisabled={true}
+                        defaultRating={quiz.rating === null ? 0 : quiz.rating}
+                        showRating={false}
+                        size={30}
+                    />
+                    <View style={styles.propertyRowContainer}>
+                        <View style={styles.propertyContainer}>
+                            <Text style={styles.propertyTitle}>Description:</Text>
+                            <Tooltip
+                                visible={tooltipOpen}
+                                onOpen={() => setTooltipOpen(true)}
+                                onClose={() => setTooltipOpen(false)}
+                                containerStyle={{ width: 160, height: 150 }}
+                                popover={
+                                    <Text>
+                                        {quiz.quiz.description}
+                                    </Text>
+                                }
+                            >
+                                <Text style={styles.propertyValue}>Read <Icon name='book' type='feather' /></Text>
+                            </Tooltip>
+                        </View>
+                        <View style={styles.propertyContainer}>
+                            <Text style={styles.propertyTitle}>Difficulty:</Text>
+                            <Text style={styles.propertyValue}>{quiz.quiz.difficulty.name}</Text>
+                        </View>
+                    </View>
+                    <View style={{ ...styles.propertyRowContainer, marginBottom: 20 }}>
+                        <CountdownCircleTimer
+                            isPlaying={start}
+                            duration={quiz.quiz.minutes * 60}
+                            size={100}
+                            colors={['#899656', '#F7B801', '#A30000']}
+                            colorsTime={[quiz.quiz.minutes * 40 - 1, quiz.quiz.minutes * 15 - 1, 0]}
+                            onComplete={() => sendAttempt(answers)}
+                            onUpdate={(time) => {
+                                if (time === 5) {
+                                    Vibration.vibrate([500, 500, 500, 500, 500, 500, 500, 500, 250, 250]);
+                                }
                             }}
-                            onClose={() => {
-                                setTooltipOpen(false);
-                            }}
-                            containerStyle={{ width: 160, height: 150 }}
-                            popover={
-                                <Text>
-                                    {
-                                        quiz.quiz.description
-                                    }
-                                </Text>
-                            }
                         >
-                            <Text style={styles.propertyValue}>Read <Icon name='book' type='feather' /></Text>
-                        </Tooltip>
-                    </View>
-                    <View style={styles.propertyContainer}>
-                        <Text style={styles.propertyTitle}>Difficulty:</Text>
-                        <Text style={styles.propertyValue}>{quiz.quiz.difficulty.name}</Text>
-                    </View>
-                </View>
-                <View style={{ ...styles.propertyRowContainer, marginBottom: 20 }}>
-                    <CountdownCircleTimer
-                        isPlaying={start}
-                        duration={quiz.quiz.minutes * 60}
-                        size={100}
-                        colors={['#899656', '#F7B801', '#A30000']}
-                        colorsTime={[quiz.quiz.minutes * 40 - 1, quiz.quiz.minutes * 15 - 1, 0]}
-                        onComplete={() => sendAttempt(answers)}
-                        onUpdate={(time) => {
-                            if (time === 5) {
-                                Vibration.vibrate([500, 500, 500, 500, 500, 500, 500, 500, 250, 250]);
+                            {({ remainingTime }) =>
+                                <View style={{ alignItems: 'center' }}>
+                                    {remainingTime >= 60 && <Text>{`${Math.floor(remainingTime / 60)} min`}</Text>}
+                                    {start && <Text> {`${remainingTime % 60} sec`}</Text>}
+                                </View>
                             }
-                        }}
-                    >
-                        {({ remainingTime }) =>
+                        </CountdownCircleTimer>
+                        <View style={styles.propertyContainer}>
+                            <Text style={styles.propertyTitle}>
+                                {start ? 'Remaining:' : 'Questions:'}
+                            </Text>
+                            <Text style={styles.propertyValue}>
+                                {!isFinish ? questions.length - answers.length : questions.length}
+                            </Text>
+                        </View>
+                    </View>
+                    <Divider />
+                    {!start && !isFinish &&
+                        <View style={{ alignItems: 'center', marginTop: 80 }}>
+                            <Button
+                                style={{ width: 150 }}
+                                onPress={() => {
+                                    Vibration.vibrate(1500);
+                                    setProcessStarted(true);
+                                    setStart(true);
+                                }}
+                            >
+                                Start
+                            </Button>
+                        </View>
+                    }
+                    {start && answers.length < questions.length &&
+                        <View style={{ alignItems: 'center', gap: 10, marginTop: 10, flex: 0.8, marginHorizontal: '5%' }}>
+                            <Text style={{ fontWeight: 'bold', fontSize: 18, color: '#b1b8be' }}>
+                                {`Question ${answers.length + 1}:`}
+                            </Text>
+                            <Text style={{ fontSize: 18 }}>{questions[answers.length].text}</Text>
+                            <ButtonGroup
+                                containerStyle={{ height: 60, marginTop: 20, marginBottom: 20 }}
+                                buttons={(questions[answers.length].answers).map(obj => obj.text)}
+                                selectedIndex={selectedIndex}
+                                onPress={(value) => {
+                                    setSelectedIndex(value);
+                                }}
+                            />
+                            <Button
+                                style={{}}
+                                onPress={handleAnswer}
+                            >
+                                {answers.length === questions.length - 1 ? 'Finish' : 'Continue'}
+                            </Button>
+                        </View>
+                    }
+                    {isFinish && !rated &&
+                        < View style={{ gap: 20, marginHorizontal: 40, marginTop: 10 }}>
+                            <Text style={{ ...styles.propertyValue, fontSize: 22, textAlign: 'center' }}>
+                                Rate the quiz to get the results:
+                            </Text>
+                            <AirbnbRating
+                                defaultRating={rating}
+                                showRating={false}
+                                size={32}
+                                onFinishRating={(rate) => setRating(rate)}
+                            />
+                            <Text style={{ ...styles.propertyValue, textAlign: 'center', marginTop: -10, fontSize: 22 }}>
+                                {`${rating}/5`}
+                            </Text>
                             <View style={{ alignItems: 'center' }}>
-                                {remainingTime >= 60 && <Text>{`${Math.floor(remainingTime / 60)} min`}</Text>}
-                                {start && <Text> {`${remainingTime % 60} sec`}</Text>}
+                                <Button style={{ width: 200 }} onPress={submitAll}>
+                                    Submit
+                                </Button>
                             </View>
-                        }
-                    </CountdownCircleTimer>
-                    <View style={styles.propertyContainer}>
-                        <Text style={styles.propertyTitle}>
-                            {start ? 'Remaining:' : 'Questions:'}
-                        </Text>
-                        <Text style={styles.propertyValue}>
-                            {!isFinish ? questions.length - answers.length : questions.length}
-                        </Text>
-                    </View>
+                        </View>
+                    }
+                    {isFinish && rated &&
+                        <View style={{ gap: 20, marginHorizontal: 40, flex: 1 }}>
+                            <Text style={styles.title} >
+                                Results
+                            </Text>
+                            <View style={styles.resultsRow}>
+                                <Text style={styles.propertyTitle}>
+                                    Score:
+                                </Text>
+                                <Text style={styles.propertyValue}>
+                                    {`${score}/${questions.length}`}
+                                </Text>
+                            </View>
+                            <View style={styles.resultsRow}>
+                                <Text style={styles.propertyTitle}>
+                                    Difficulty rate:
+                                </Text>
+                                <Text style={styles.propertyValue}>
+                                    {quiz.quiz.difficulty.rate}
+                                </Text>
+                            </View>
+                            <View style={styles.resultsRow}>
+                                <Text style={styles.propertyTitle}>
+                                    Total score:
+                                </Text>
+                                <Text style={{ ...styles.propertyValue, color: '#899656', fontWeight: 'bold', fontSize: 24 }}>
+                                    {(score * quiz.quiz.difficulty.rate).toFixed(2)}
+                                </Text>
+                            </View>
+                            <Divider />
+                            <Text style={{ ...styles.propertyValue, fontSize: 22, textAlign: 'center' }}>
+                                You rate this quiz:
+                            </Text>
+                            <AirbnbRating
+                                defaultRating={rating}
+                                showRating={false}
+                                size={32}
+                                isDisabled
+                            />
+                            <Text style={{ ...styles.propertyValue, textAlign: 'center', marginTop: -10, fontSize: 22 }}>
+                                {`${rating}/5`}
+                            </Text>
+                            <View style={{ alignItems: 'center' }}>
+                                <Button style={{ width: 200 }} onPress={finishAll}>
+                                    Finish
+                                </Button>
+                            </View>
+                        </View>
+                    }
                 </View>
-                <Divider />
-                {!start && !isFinish && <View style={{ alignItems: 'center', marginTop: 80 }}>
-                    <Button
-                        style={{ width: 150 }}
-                        onPress={() => {
-                            Vibration.vibrate(1500);
-                            setProcessStarted(true);
-                            setStart(true);
-                        }}
-                    >
-                        Start
-                    </Button>
-                </View>}
-                {start && answers.length < questions.length &&
-                    <View style={{ alignItems: 'center', gap: 10, marginTop: 10, flex: 0.8, marginHorizontal: '5%' }}>
-                        <Text style={{ fontWeight: 'bold', fontSize: 18, color: '#b1b8be' }}>
-                            {`Question ${answers.length + 1}:`}
-                        </Text>
-                        <Text style={{ fontSize: 18 }}>{questions[answers.length].text}</Text>
-                        <ButtonGroup
-                            containerStyle={{ height: 60, marginTop: 20, marginBottom: 20 }}
-                            buttons={(questions[answers.length].answers).map(obj => obj.text)}
-                            selectedIndex={selectedIndex}
-                            onPress={(value) => {
-                                setSelectedIndex(value);
-                            }}
-                        />
-                        <Button
-                            style={{}}
-                            onPress={handleAnswer}
-                        >
-                            {answers.length === questions.length - 1 ? 'Finish' : 'Continue'}
-                        </Button>
-                    </View>
-                }
-                {isFinish && !rated &&
-                    < View style={{ gap: 20, marginHorizontal: 40, marginTop: 10 }}>
-                        <Text style={{ ...styles.propertyValue, fontSize: 22, textAlign: 'center' }}>
-                            Rate the quiz to get the results:
-                        </Text>
-                        <AirbnbRating
-                            defaultRating={rating}
-                            showRating={false}
-                            size={32}
-                            onFinishRating={(rate) => setRating(rate)}
-                        />
-                        <Text style={{ ...styles.propertyValue, textAlign: 'center', marginTop: -10, fontSize: 22 }}>
-                            {`${rating}/5`}
-                        </Text>
-                        <View style={{ alignItems: 'center' }}>
-                            <Button style={{ width: 200 }} onPress={submitAll}>
-                                Submit
-                            </Button>
-                        </View>
-                    </View>
-                }
-                {isFinish && rated &&
-                    <View style={{ gap: 20, marginHorizontal: 40, flex: 1 }}>
-                        <Text style={styles.title} >
-                            Results
-                        </Text>
-                        <View style={styles.resultsRow}>
-                            <Text style={styles.propertyTitle}>
-                                Score:
-                            </Text>
-                            <Text style={styles.propertyValue}>
-                                {`${score}/${questions.length}`}
-                            </Text>
-                        </View>
-                        <View style={styles.resultsRow}>
-                            <Text style={styles.propertyTitle}>
-                                Difficulty rate:
-                            </Text>
-                            <Text style={styles.propertyValue}>
-                                {quiz.quiz.difficulty.rate}
-                            </Text>
-                        </View>
-                        <View style={styles.resultsRow}>
-                            <Text style={styles.propertyTitle}>
-                                Total score:
-                            </Text>
-                            <Text style={{ ...styles.propertyValue, color: '#899656', fontWeight: 'bold', fontSize: 24 }}>
-                                {(score * quiz.quiz.difficulty.rate).toFixed(2)}
-                            </Text>
-                        </View>
-                        <Divider />
-                        <Text style={{ ...styles.propertyValue, fontSize: 22, textAlign: 'center' }}>
-                            You rate this quiz:
-                        </Text>
-                        <AirbnbRating
-                            defaultRating={rating}
-                            showRating={false}
-                            size={32}
-                            isDisabled
-                        />
-                        <Text style={{ ...styles.propertyValue, textAlign: 'center', marginTop: -10, fontSize: 22 }}>
-                            {`${rating}/5`}
-                        </Text>
-                        <View style={{ alignItems: 'center' }}>
-                            <Button style={{ width: 200 }} onPress={finishAll}>
-                                Finish
-                            </Button>
-                        </View>
-                    </View>
-                }
-            </View>}
-            {(!dataFetched || !quiz || !(questions.length > 0)) && <View style={{ justifyContent: 'center', flex: 1, alignItems: 'center' }}>
-                <Button title="Solid" type="solid" loading style={{ borderRadius: 25, width: 80, height: 80 }} />
-            </View>}
-        </View >
+            }
+            {!dataFetched &&
+                <Loading />
+            }
+        </View>
     );
 }
 
