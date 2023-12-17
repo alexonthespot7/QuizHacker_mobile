@@ -18,7 +18,6 @@ import QuizCreation from './QuizCreation';
 import QuestionsCreation from './QuestionsCreation';
 import QuizTaking from './QuizTaking';
 import PublishedQuiz from './PublishedQuiz';
-import CameraScreen from './CameraScreen';
 
 const Drawer = createDrawerNavigator();
 const Stack = createStackNavigator(); // Create a new stack navigator

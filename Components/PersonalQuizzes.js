@@ -5,6 +5,13 @@ import { useCallback, useContext, useState } from 'react';
 import { StyleSheet, View, FlatList, Alert } from 'react-native';
 import SelectDropdown from 'react-native-select-dropdown';
 import AuthContext from '../context/AuthContext';
+import Loading from './Loading';
+
+const initialFilter = {
+    difficulty: 'No Filter',
+    category: 'No Filter',
+    rating: 0,
+}
 
 export default function PersonalQuizzes({ navigation }) {
     const [quizzes, setQuizzes] = useState([]);
@@ -12,20 +19,12 @@ export default function PersonalQuizzes({ navigation }) {
     const [tooltipOpen, setTooltipOpen] = useState(new Array(quizzes.length).fill(false));
     const [search, setSearch] = useState("");
     const [filtered, setFiltered] = useState(0);
-    const [filterConditions, setFilterConditions] = useState({
-        difficulty: 'No Filter',
-        category: 'No Filter',
-        rating: 0,
-    });
-    const [tempConditions, setTempConditions] = useState({
-        difficulty: 'No Filter',
-        category: 'No Filter',
-        rating: 0,
-    });
+    const [filterConditions, setFilterConditions] = useState(initialFilter);
+    const [tempConditions, setTempConditions] = useState(initialFilter);
     const [filterOverlay, setFilterOverlay] = useState(false);
     const [categories, setCategories] = useState([]);
 
-    const { loginData, backEndUrl } = useContext(AuthContext);
+    const { loginData, backEndUrl, handleBadResponse, handleResponseWithData } = useContext(AuthContext);
 
     const filteredQuizzes = quizzes.filter(
         quiz => {
@@ -43,45 +42,54 @@ export default function PersonalQuizzes({ navigation }) {
         }
     );
 
-    const fetchCategories = () => {
-        fetch(`${backEndUrl}/categories`)
-            .then(response => response.json())
-            .then(data => {
-                const cats = data;
-                cats.unshift({
-                    "categoryId": -1,
-                    "name": "No Filter"
-                });
-                setCategories(cats);
-                setDataFetched(true);
-            })
-            .catch(err => console.error(err));
+    const handleCategoriesData = (data) => {
+        const cats = data;
+        cats.unshift({
+            "categoryId": -1,
+            "name": "No Filter"
+        });
+        setCategories(cats);
+        setDataFetched(true);
     }
 
-    const fetchQuizzes = () => {
-        fetch(`${backEndUrl}/personalquizzes/${loginData.id}`,
-            {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': loginData.jwt
-                }
-            })
-            .then(response => {
-                if (response.status === 401) {
-                    throw new Error('Unauthorized request');
-                }
-                return response.json();
-            })
-            .then(data => {
-                if (data) {
-                    setQuizzes(data);
-                    setTooltipOpen(new Array(data.length).fill(false))
-                    fetchCategories();
-                } else {
-                    Alert.alert('Please re-login');
-                }
-            })
+    const fetchCategories = async () => {
+        try {
+            const response = await fetch(`${backEndUrl}/categories`);
+            if (!response.ok) {
+                Alert.alert('Something went wrong');
+                return null;
+            }
+            handleResponseWithData(response, handleCategoriesData);
+        } catch (error) {
+            Alert.alert('Something is wrong with the server');
+        }
+    }
+
+    const handleQuizzesData = (data) => {
+        setQuizzes(data);
+        setTooltipOpen(new Array(data.length).fill(false))
+        fetchCategories();
+    }
+
+    const fetchQuizzes = async () => {
+        setDataFetched(false);
+        try {
+            const response = await fetch(`${backEndUrl}/personalquizzes/${loginData.id}`,
+                {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': loginData.jwt
+                    }
+                });
+            if (!response.ok) {
+                handleBadResponse(response);
+                return null;
+            }
+            handleResponseWithData(response, handleQuizzesData);
+        } catch (error) {
+            Alert.alert('Something was wrong, try again later');
+        }
     }
 
     useFocusEffect(
@@ -123,66 +131,50 @@ export default function PersonalQuizzes({ navigation }) {
 
     const resetFilters = (flag) => {
         setFiltered(0);
-        setTempConditions({
-            difficulty: 'No Filter',
-            category: 'No Filter',
-            rating: 0,
-        });
-        setFilterConditions({
-            difficulty: 'No Filter',
-            category: 'No Filter',
-            rating: 0,
-        });
+        setTempConditions(initialFilter);
+        setFilterConditions(initialFilter);
         setFilterOverlay(flag);
     }
 
-    const createQuiz = () => {
+    const createQuiz = async () => {
         setDataFetched(false);
-        fetch(`${backEndUrl}/createquiz`, {
-            method: 'POST',
-            headers: {
-                'Authorization': loginData.jwt
-            }
-        })
-            .then(response => {
-                if (response.ok) {
-                    const newQuizId = response.headers.get('Host');
-                    setDataFetched(true);
-                    navigation.navigate('QuizCreation', { quizId: newQuizId });
-                } else if (response.status === 401) {
-                    Alert.alert('Please re-login');
-                } else {
-                    setDataFetched(false);
-                    Alert.alert('Something went wrong');
+        try {
+            const response = await fetch(`${backEndUrl}/createquiz`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': loginData.jwt
                 }
-            })
-            .catch(error => {
-                console.error(error);
             });
+            if (!response.ok) {
+                handleBadResponse(response);
+                return null;
+            }
+            const newQuizId = response.headers.get('Host');
+            setDataFetched(true);
+            navigation.navigate('QuizCreation', { quizId: newQuizId });
+        } catch (error) {
+            Alert.alert('Something went wrong');
+        }
     }
 
-    const deleteItem = (quizId) => {
-        console.log(quizId);
-        fetch(`${backEndUrl}/deletequiz/${quizId}`, {
-            method: 'DELETE',
-            headers: {
-                'Authorization': loginData.jwt
-            },
-        })
-            .then(response => {
-                if (response.ok) {
-                    setDataFetched(false);
-                    fetchQuizzes();
-                    Alert.alert('Quiz was deleted successfully');
-                } else if (response.status === 401) {
-                    Alert.alert('Please re-login to prove your identity');
-                } else {
-                    Alert.alert('Something went wrong');
-                }
-            })
-            .catch(error => {
-                console.error(error);
+    const deleteItem = async (quizId) => {
+        setDataFetched(false);
+        try {
+            const response = await fetch(`${backEndUrl}/deletequiz/${quizId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': loginData.jwt
+                },
             });
+            if (!response.ok) {
+                handleBadResponse(response);
+                return null;
+            }
+            fetchQuizzes();
+            Alert.alert('Quiz was deleted successfully');
+        } catch (error) {
+            Alert.alert('Something went wrong');
+        }
     }
 
     const navigateToQuiz = (status, id) => {
@@ -198,178 +190,177 @@ export default function PersonalQuizzes({ navigation }) {
             <Text style={styles.title}>
                 My Quizzes
             </Text>
-            {quizzes.length > 0 && dataFetched && <View style={{ flex: 0.92 }}>
-                <View style={{ flexDirection: 'row', marginHorizontal: '5%', justifyContent: 'center', alignItems: 'center', gap: 10 }}>
-                    <SearchBar
-                        containerStyle={{ width: '80%' }}
-                        inputContainerStyle={{ height: 35 }}
-                        lightTheme
-                        placeholder="Search quizzes..."
-                        onChangeText={(search) => setSearch(search)}
-                        value={search}
-                    />
-                    <View>
-                        <Icon
-                            onPress={() => resetFilters(true)}
-                            name='filter'
-                            type={filtered > 0 ? 'font-awesome' : 'feather'}
-                            size={filtered > 0 ? 30 : 28}
+            {quizzes.length > 0 && dataFetched &&
+                <View style={{ flex: 0.92 }}>
+                    <View style={{ flexDirection: 'row', marginHorizontal: '5%', justifyContent: 'center', alignItems: 'center', gap: 10 }}>
+                        <SearchBar
+                            containerStyle={{ width: '80%' }}
+                            inputContainerStyle={{ height: 35 }}
+                            lightTheme
+                            placeholder="Search quizzes..."
+                            onChangeText={(search) => setSearch(search)}
+                            value={search}
                         />
-                        {filtered > 0 && <Badge
-                            status="primary"
-                            value={filtered}
-                            containerStyle={{ position: 'absolute', top: -6.5, left: 15 }}
-                            onPress={() => resetFilters(true)}
-                        />}
+                        <View>
+                            <Icon
+                                onPress={() => resetFilters(true)}
+                                name='filter'
+                                type={filtered > 0 ? 'font-awesome' : 'feather'}
+                                size={filtered > 0 ? 30 : 28}
+                            />
+                            {filtered > 0 && <Badge
+                                status="primary"
+                                value={filtered}
+                                containerStyle={{ position: 'absolute', top: -6.5, left: 15 }}
+                                onPress={() => resetFilters(true)}
+                            />}
+                        </View>
                     </View>
-                </View>
-                <FlatList
-                    style={{ marginLeft: "5%", marginTop: 10 }}
-                    renderItem={({ item, index }) =>
-                        <ListItem.Swipeable
-                            bottomDivider
-                            rightContent={() => (
-                                <Button
-                                    containerStyle={{
-                                        flex: 1,
-                                        backgroundColor: '#f4f4f4',
-                                        alignItems: 'center',
-                                        justifyContent: 'center'
-                                    }}
-                                    type="clear"
-                                    icon={{ name: 'delete-outline', size: 40 }}
-                                    onPress={() => {
-                                        if (item.quiz.status !== 'Published') { deleteItem(item.quiz.quizId) } else { Alert.alert('You cannot delete published quiz') }
-                                    }}
-                                />
-                            )}
-                        >
-                            <ListItem.Content style={{ gap: 12 }}>
-                                <ListItem.Title style={{ fontSize: 22, fontWeight: 'bold', color: '#b1b8be', marginBottom: -8 }}>{item.quiz.title}</ListItem.Title>
-                                <Tooltip
-                                    visible={tooltipOpen[index]}
-                                    onOpen={() => openTooltip(index)}
-                                    onClose={closeTooltip}
-                                    containerStyle={{ width: 160, height: 150 }}
-                                    popover={
-                                        <Text>
-                                            {
-                                                item.quiz.description
-                                            }
-                                        </Text>
-                                    }
-                                >
-                                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                                        <Text style={styles.value}>Description </Text>
-                                        <Icon name='info' type='feather' size={18} />
+                    <FlatList
+                        style={{ marginLeft: "5%", marginTop: 10 }}
+                        renderItem={({ item, index }) =>
+                            <ListItem.Swipeable
+                                bottomDivider
+                                rightContent={() => (
+                                    <Button
+                                        containerStyle={{
+                                            flex: 1,
+                                            backgroundColor: '#f4f4f4',
+                                            alignItems: 'center',
+                                            justifyContent: 'center'
+                                        }}
+                                        type="clear"
+                                        icon={{ name: 'delete-outline', size: 40 }}
+                                        onPress={() => {
+                                            if (item.quiz.status !== 'Published') { deleteItem(item.quiz.quizId) } else { Alert.alert('You cannot delete published quiz') }
+                                        }}
+                                    />
+                                )}
+                            >
+                                <ListItem.Content style={{ gap: 12 }}>
+                                    <ListItem.Title style={{ fontSize: 22, fontWeight: 'bold', color: '#b1b8be', marginBottom: -8 }}>{item.quiz.title}</ListItem.Title>
+                                    <Tooltip
+                                        visible={tooltipOpen[index]}
+                                        onOpen={() => openTooltip(index)}
+                                        onClose={closeTooltip}
+                                        containerStyle={{ width: 160, height: 150 }}
+                                        popover={
+                                            <Text>
+                                                {item.quiz.description}
+                                            </Text>
+                                        }
+                                    >
+                                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                            <Text style={styles.value}>Description </Text>
+                                            <Icon name='info' type='feather' size={18} />
+                                        </View>
+                                    </Tooltip>
+                                    <View style={styles.infoContainer}>
+                                        <Text style={styles.subtitle}>Category: </Text>
+                                        <Text style={styles.value}>{`${item.quiz.category.name}`}</Text>
                                     </View>
-                                </Tooltip>
-                                <View style={styles.infoContainer}>
-                                    <Text style={styles.subtitle}>Category: </Text>
-                                    <Text style={styles.value}>{`${item.quiz.category.name}`}</Text>
-                                </View>
-                                <View style={styles.infoContainer}>
-                                    <Text style={styles.subtitle}>Difficulty: </Text>
-                                    <Text style={styles.value}>{item.quiz.difficulty.name}</Text>
-                                </View>
-                                <View style={styles.infoContainer}>
-                                    <Text style={styles.subtitle}>Questions: </Text>
-                                    <Text style={styles.value}>{`${item.questions}`}</Text>
-                                </View>
-                                <View style={styles.infoContainer}>
-                                    <Text style={styles.subtitle}>Time: </Text>
-                                    <Text style={styles.value}>{`${item.quiz.minutes} min`}</Text>
-                                </View>
-                                <View style={styles.infoContainer}>
-                                    <Text style={styles.subtitle}>Rating: </Text>
-                                    <Text style={styles.value}>{`${item.rating ? item.rating : 0}/5`}</Text>
-                                </View>
-                            </ListItem.Content>
-                            <ListItem.Chevron size={40} onPress={() => navigateToQuiz(item.quiz.status, item.quiz.quizId)} />
-                        </ListItem.Swipeable>
-                    }
-                    keyExtractor={item => item.quiz.quizId}
-                    data={filteredQuizzes}
-                />
-                <Overlay isVisible={filterOverlay} onBackdropPress={toggleOverlay} overlayStyle={{ flex: 0.5, width: '90%' }}>
-                    <Text style={styles.textPrimary}>
-                        Filter
-                    </Text>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginHorizontal: '2%', marginTop: 10 }}>
-                        <View style={{ gap: 10 }}>
+                                    <View style={styles.infoContainer}>
+                                        <Text style={styles.subtitle}>Difficulty: </Text>
+                                        <Text style={styles.value}>{item.quiz.difficulty.name}</Text>
+                                    </View>
+                                    <View style={styles.infoContainer}>
+                                        <Text style={styles.subtitle}>Questions: </Text>
+                                        <Text style={styles.value}>{`${item.questions}`}</Text>
+                                    </View>
+                                    <View style={styles.infoContainer}>
+                                        <Text style={styles.subtitle}>Time: </Text>
+                                        <Text style={styles.value}>{`${item.quiz.minutes} min`}</Text>
+                                    </View>
+                                    <View style={styles.infoContainer}>
+                                        <Text style={styles.subtitle}>Rating: </Text>
+                                        <Text style={styles.value}>{`${item.rating ? item.rating : 0}/5`}</Text>
+                                    </View>
+                                </ListItem.Content>
+                                <ListItem.Chevron size={40} onPress={() => navigateToQuiz(item.quiz.status, item.quiz.quizId)} />
+                            </ListItem.Swipeable>
+                        }
+                        keyExtractor={item => item.quiz.quizId}
+                        data={filteredQuizzes}
+                    />
+                    <Overlay isVisible={filterOverlay} onBackdropPress={toggleOverlay} overlayStyle={{ flex: 0.5, width: '90%' }}>
+                        <Text style={styles.textPrimary}>
+                            Filter
+                        </Text>
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginHorizontal: '2%', marginTop: 10 }}>
+                            <View style={{ gap: 10 }}>
+                                <Text style={styles.propertyTitle}>
+                                    Difficulty:
+                                </Text>
+                                <SelectDropdown
+                                    buttonStyle={{ width: 150, height: 40, borderRadius: 20 }}
+                                    data={['No Filter', 'Easy', 'Medium', 'Hard']}
+                                    onSelect={(selectedItem, index) => {
+                                        setTempConditions({ ...tempConditions, difficulty: selectedItem });
+                                    }}
+                                    buttonTextAfterSelection={(selectedItem, index) => {
+                                        return selectedItem;
+                                    }}
+                                    rowTextForSelection={(item, index) => {
+                                        return item;
+                                    }}
+                                    renderDropdownIcon={() => <Icon name='chevron-down' type='feather' />}
+                                    defaultValue='No Filter'
+                                />
+                            </View>
+                            <View style={{ gap: 10 }}>
+                                <Text style={styles.propertyTitle}>
+                                    Rating:
+                                </Text>
+                                <AirbnbRating
+                                    defaultRating={tempConditions.rating}
+                                    showRating={false}
+                                    size={22}
+                                    onFinishRating={(rate) => setTempConditions({ ...tempConditions, rating: rate })}
+                                />
+                            </View>
+                        </View>
+                        <View style={{ marginTop: 30, gap: 10, alignItems: 'center' }}>
                             <Text style={styles.propertyTitle}>
-                                Difficulty:
+                                Category:
                             </Text>
                             <SelectDropdown
-                                buttonStyle={{ width: 150, height: 40, borderRadius: 20 }}
-                                data={['No Filter', 'Easy', 'Medium', 'Hard']}
+                                buttonStyle={{ width: 250, height: 40, borderRadius: 20 }}
+                                data={categories}
                                 onSelect={(selectedItem, index) => {
-                                    setTempConditions({ ...tempConditions, difficulty: selectedItem });
+                                    setTempConditions({ ...tempConditions, category: selectedItem.name });
                                 }}
                                 buttonTextAfterSelection={(selectedItem, index) => {
-                                    return selectedItem;
+                                    return selectedItem.name;
                                 }}
                                 rowTextForSelection={(item, index) => {
-                                    return item;
+                                    return item.name;
                                 }}
                                 renderDropdownIcon={() => <Icon name='chevron-down' type='feather' />}
-                                defaultValue='No Filter'
+                                defaultValue={categories[0]}
+                                search
                             />
                         </View>
-                        <View style={{ gap: 10 }}>
-                            <Text style={styles.propertyTitle}>
-                                Rating:
-                            </Text>
-                            <AirbnbRating
-                                defaultRating={tempConditions.rating}
-                                showRating={false}
-                                size={22}
-                                onFinishRating={(rate) => setTempConditions({ ...tempConditions, rating: rate })}
-                            />
+                        <View style={{ flexDirection: 'row', marginTop: '20%', justifyContent: 'space-between', marginHorizontal: '15%' }}>
+                            <Button onPress={applyFilters} >
+                                Apply
+                                <Icon style={{ marginLeft: 8 }} name='check-circle' type='feather' color='white' size={22} />
+                            </Button>
+                            <Button
+                                color={'secondary'}
+                                onPress={() => resetFilters(false)}
+                            >
+                                Cancel
+                                <Icon style={{ marginLeft: 8 }} name='x-circle' type='feather' color='white' size={22} />
+                            </Button>
                         </View>
-                    </View>
-                    <View style={{ marginTop: 30, gap: 10, alignItems: 'center' }}>
-                        <Text style={styles.propertyTitle}>
-                            Category:
-                        </Text>
-                        <SelectDropdown
-                            buttonStyle={{ width: 250, height: 40, borderRadius: 20 }}
-                            data={categories}
-                            onSelect={(selectedItem, index) => {
-                                setTempConditions({ ...tempConditions, category: selectedItem.name });
-                            }}
-                            buttonTextAfterSelection={(selectedItem, index) => {
-                                return selectedItem.name;
-                            }}
-                            rowTextForSelection={(item, index) => {
-                                return item.name;
-                            }}
-                            renderDropdownIcon={() => <Icon name='chevron-down' type='feather' />}
-                            defaultValue={categories[0]}
-                            search
-                        />
-                    </View>
-                    <View style={{ flexDirection: 'row', marginTop: '20%', justifyContent: 'space-between', marginHorizontal: '15%' }}>
-                        <Button
-                            onPress={applyFilters}
-                        >
-                            Apply
-                            <Icon style={{ marginLeft: 8 }} name='check-circle' type='feather' color='white' size={22} />
-                        </Button>
-                        <Button
-                            color={'secondary'}
-                            onPress={() => resetFilters(false)}
-                        >
-                            Cancel
-                            <Icon style={{ marginLeft: 8 }} name='x-circle' type='feather' color='white' size={22} />
-                        </Button>
-                    </View>
-                </Overlay>
-            </View>}
+                    </Overlay>
+                </View>
+            }
             {quizzes.length === 0 && dataFetched &&
                 <Text style={styles.textPrimary}>
                     You have no quizzes so far!
-                </Text>}
+                </Text>
+            }
             {dataFetched &&
                 <View style={{ alignItems: 'center', marginTop: 30 }}>
                     <Button
@@ -379,10 +370,11 @@ export default function PersonalQuizzes({ navigation }) {
                         <Icon name='add' color='white' />
                         Quiz
                     </Button>
-                </View>}
-            {!dataFetched && <View style={{ justifyContent: 'center', flex: 1, alignItems: 'center' }}>
-                <Button title="Solid" type="solid" loading style={{ borderRadius: 25, width: 80, height: 80 }} />
-            </View>}
+                </View>
+            }
+            {!dataFetched &&
+                <Loading />
+            }
         </View>
     );
 }

@@ -13,6 +13,10 @@ function ContextProvider(props) {
 
     const backEndUrl = 'https://quiz-hacker-back-end.onrender.com/api';
 
+    useEffect(() => {
+        fetchData();
+    }, []);
+
     async function fetchData() {
         const token = await AsyncStorage.getItem('jwt');
         const id = await AsyncStorage.getItem('id');
@@ -45,21 +49,8 @@ function ContextProvider(props) {
         fetchData();
     }
 
-    const fetchAvatarURL = (id, token) => {
-        fetch(`${backEndUrl}/getavatar/${id}`,
-            {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': token
-                }
-            })
-            .then(response => {
-                if (response.status === 401) {
-                    throw new Error('Unauthorized request');
-                }
-                return response.text();
-            })
+    const handleAvatarURLGoodResponse = (response) => {
+        response.text()
             .then(data => {
                 if (data) {
                     setAvatarURL(data);
@@ -69,17 +60,29 @@ function ContextProvider(props) {
                 setFetchingAvatar(false);
             })
             .catch(error => {
-                if (error.message === 'Unauthorized request') {
-                    if (!fetchingAvatar) {
-                        setFetchingAvatar(true);
-                        logOutData();
-                        Alert.alert('Your current session expired. Please login.')
-                    }
-                } else {
-                    console.error(error);
-                    setFetchingAvatar(false);
-                }
+                console.error(error);
+                setFetchingAvatar(false);
             });
+    }
+
+    const fetchAvatarURL = async (id, token) => {
+        try {
+            const response = await fetch(`${backEndUrl}/getavatar/${id}`,
+                {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': token
+                    }
+                });
+            if (!response.ok) {
+                handleBadResponse(response);
+                return null;
+            }
+            handleAvatarURLGoodResponse(response);
+        } catch (error) {
+            console.error(error);
+        }
     }
 
     async function receiveUnverifiedId(unverId) {
@@ -100,23 +103,37 @@ function ContextProvider(props) {
         fetchData();
     }
 
+    const handleBadResponse = (response) => {
+        if ([401, 500].includes(response.status)) {
+            logOutData();
+            Alert.alert('Please re-login to prove your authentication');
+        } else {
+            Alert.alert('Something went wrong');
+        }
+    }
 
-
-    useEffect(() => {
-        fetchData();
-    }, []);
+    const handleResponseWithData = (response, handleData) => {
+        response.json()
+            .then(data => {
+                handleData(data);
+            })
+            .catch(err => {
+                console.error(err);
+                Alert.alert('Something was wrong, try again later');
+            });
+    }
 
     return (
         <AuthContext.Provider
             value={{
                 unverifiedId, logOutData, loginData, loginMake, receiveUnverifiedId,
                 removeUnverifiedId, processStarted, setProcessStarted, avatarURL, setAvatarURL,
-                backEndUrl
+                backEndUrl, handleBadResponse, handleResponseWithData
             }}
         >
             {props.children}
         </AuthContext.Provider>
     );
-};
+}
 
 export default ContextProvider;

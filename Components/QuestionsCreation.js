@@ -2,71 +2,60 @@ import { useContext, useEffect, useState } from "react";
 import { StyleSheet, View, FlatList, Alert, KeyboardAvoidingView } from 'react-native';
 import { Text, Button, Icon, ListItem, Overlay } from '@rneui/themed';
 import AuthContext from "../context/AuthContext";
+import AnswersCreation from "./AnswersCreation";
+import Loading from "./Loading";
 
 export default function QuestionsCreation({ route, navigation }) {
     const { quizId } = route.params;
 
     const [questions, setQuestions] = useState([]);
     const [dataFetched, setDataFetched] = useState(true);
-    const [visible, setVisible] = useState(false);
     const [dataSaved, setDataSaved] = useState(false);
-    const [currentQuestion, setCurrentQuestion] = useState({
-        question: {
-            questionId: -1,
-            text: "",
-            quiz: null,
-            answers: []
-        },
-        index: -1
-    });
 
-    const { loginData, backEndUrl } = useContext(AuthContext);
+    const { loginData, backEndUrl, handleBadResponse, handleResponseWithData } = useContext(AuthContext);
 
-    const fetchQuestions = () => {
-        fetch(`${backEndUrl}/questions/${quizId}`, {
-            headers: {
-                'Authorization': loginData.jwt
-            }
-        })
-            .then(response => {
-                if (response.status === 401) {
-                    throw new Error('Unauthorized request');
+    const handleQuestionsData = (data) => {
+        setQuestions(data);
+        setDataFetched(true);
+    }
+
+    const fetchQuestions = async () => {
+        try {
+            const response = await fetch(`${backEndUrl}/questions/${quizId}`, {
+                headers: {
+                    'Authorization': loginData.jwt
                 }
-                return response.json();
-            })
-            .then(data => {
-                setQuestions(data);
-                setDataFetched(true);
-            })
+            });
+            if (!response.ok) {
+                Alert.alert('Something is wrong with the server');
+                return null;
+            }
+            handleResponseWithData(response, handleQuestionsData);
+        } catch (error) {
+            Alert.alert('Something is wrong with the server');
+        }
     }
 
     useEffect(() => {
         fetchQuestions();
     }, []);
 
-    const fetchDeleteQuestion = (questionId, index) => {
-        fetch(`${backEndUrl}/deletequestion/${questionId}`, {
-            method: 'DELETE',
-            headers: {
-                'Authorization': loginData.jwt
-            },
-        })
-            .then(response => {
-                if (response.ok) {
-                    const newQuestions = [...questions];
-                    newQuestions.splice(index, 1);
-                    setQuestions(newQuestions);
-                } else if (response.status === 400) {
-                    Alert.alert('Please try again later');
-                } else if (response.status === 401) {
-                    Alert.alert('Please re-login to prove your identity');
-                } else {
-                    Alert.alert('Something went wrong');
-                }
-            })
-            .catch(error => {
-                console.error(error);
+    const fetchDeleteQuestion = async (questionId) => {
+        try {
+            const response = await fetch(`${backEndUrl}/deletequestion/${questionId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': loginData.jwt
+                },
             });
+            if (!response.ok) {
+                handleBadResponse(response);
+                return null;
+            }
+            fetchQuestions();
+        } catch (error) {
+            Alert.alert('Something is wrong with the server');
+        }
     }
 
     const changeQuestionText = (text, index) => {
@@ -74,39 +63,6 @@ export default function QuestionsCreation({ route, navigation }) {
         const newQuestions = [...questions];
         newQuestions[index].text = text;
         setQuestions(newQuestions);
-    }
-
-    const toggleOverlay = () => {
-        setVisible(!visible);
-    }
-
-    const saveAnswers = () => {
-        setDataSaved(false);
-        const newQuestions = [...questions];
-        newQuestions[currentQuestion.index].answers = currentQuestion.question.answers;
-        setQuestions(newQuestions);
-        toggleOverlay();
-    }
-
-    const openAnswersOverlay = (question, index) => {
-        setCurrentQuestion({
-            question: question,
-            index: index
-        });
-        toggleOverlay();
-    }
-
-    const changeAnswerText = (text, index) => {
-        const currentAnswers = [...currentQuestion.question.answers];
-        currentAnswers[index].text = text;
-        setCurrentQuestion({ ...currentQuestion, question: { ...currentQuestion.question, answers: currentAnswers } });
-    }
-
-    const changeCorrect = (index) => {
-        const currentAnswers = [...currentQuestion.question.answers];
-        currentAnswers.map(item => item.correct = false);
-        currentAnswers[index].correct = true;
-        setCurrentQuestion({ ...currentQuestion, question: { ...currentQuestion.question, answers: currentAnswers } });
     }
 
     const addQuestion = () => {
@@ -147,65 +103,66 @@ export default function QuestionsCreation({ route, navigation }) {
     }
 
     const deleteItem = (questionId, index) => {
-        fetchDeleteQuestion(questionId, index);
+        if (questionId < 0) {
+            const newQuestions = [...questions];
+            newQuestions.splice(index, 1);
+            setQuestions(newQuestions);
+        } else {
+            setDataFetched(false);
+            fetchDeleteQuestion(questionId);
+        }
     }
 
     const saveAll = () => {
         setDataFetched(false);
-        fetch(`${backEndUrl}/savequestions/${questions[0].quiz.quizId}`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': loginData.jwt
-            },
-            body: JSON.stringify(questions)
-        })
-            .then(response => {
-                if (response.ok) {
-                    fetchQuestions();
-                    setDataFetched(true);
-                    setDataSaved(true);
-                } else if (response.status === 401) {
-                    setDataFetched(true);
-                    Alert.alert('Please re-login to prove your identity');
-                } else {
-                    setDataFetched(true);
-                    Alert.alert('Something went wrong');
-                }
-            })
-            .catch(error => {
-                console.error(error);
-            });
+        fetchSaveQuestions();
     }
 
-    const publishQuiz = () => {
-        setDataFetched(false);
-        fetch(`${backEndUrl}/publishquiz/${questions[0].quiz.quizId}`, {
-            method: 'PUT',
-            headers: {
-                'Authorization': loginData.jwt
-            }
-        })
-            .then(response => {
-                if (response.ok) {
-                    setDataFetched(true);
-                    navigation.navigate('My Quizzes');
-                } else if (response.status === 401) {
-                    setDataFetched(true);
-                    Alert.alert('Please re-login to prove your identity');
-                } else {
-                    setDataFetched(true);
-                    Alert.alert('Something went wrong');
-                }
-            })
-            .catch(error => {
-                console.error(error);
+    const fetchSaveQuestions = async () => {
+        try {
+            const response = await fetch(`${backEndUrl}/savequestions/${questions[0].quiz.quizId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': loginData.jwt
+                },
+                body: JSON.stringify(questions)
             });
+            if (!response.ok) {
+                handleBadResponse(response);
+                return null;
+            }
+            fetchQuestions();
+            setDataSaved(true);
+        } catch (error) {
+            Alert.alert('Something is wrong with the server');
+        }
+    }
+
+    const publishQuiz = async () => {
+        setDataFetched(false);
+        try {
+            const response = await fetch(`${backEndUrl}/publishquiz/${questions[0].quiz.quizId}`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': loginData.jwt
+                }
+            });
+
+            if (!response.ok) {
+                handleBadResponse(response);
+                return null;
+            }
+            setDataFetched(true);
+            navigation.navigate('My Quizzes');
+        } catch (error) {
+            Alert.alert('Something went wrong');
+        }
     }
 
     return (
         <KeyboardAvoidingView behavior="padding" enabled style={styles.container}>
-            {dataFetched && questions[0] &&
+            {dataFetched && questions.length > 0 &&
                 <View style={{ flex: 0.9 }}>
                     <Text style={styles.title}>
                         {questions[0].quiz.title}
@@ -237,19 +194,12 @@ export default function QuestionsCreation({ route, navigation }) {
                                         onChangeText={text => changeQuestionText(text, index)}
                                         value={item.text}
                                     />
-                                    <Button
-                                        size='sm'
-                                        icon={
-                                            <Icon
-                                                name="check"
-                                                type="font-awesome"
-                                                color="white"
-                                                size={14}
-                                                iconStyle={{ marginRight: 5 }}
-                                            />
-                                        }
-                                        title="Answers"
-                                        onPress={() => openAnswersOverlay(item, index)}
+                                    <AnswersCreation
+                                        item={item}
+                                        index={index}
+                                        questions={questions}
+                                        setQuestions={setQuestions}
+                                        setDataSaved={setDataSaved}
                                     />
                                 </ListItem.Content>
                             </ListItem.Swipeable>
@@ -283,65 +233,10 @@ export default function QuestionsCreation({ route, navigation }) {
                             </Button>
                         }
                     </View>
-                    <Overlay isVisible={visible} onBackdropPress={toggleOverlay} overlayStyle={{ flex: 0.7, width: '90%' }}>
-                        <Text style={styles.textPrimary}>Edit answers:</Text>
-                        <Text style={styles.textSecondary}>
-                            {currentQuestion.question.text}
-                        </Text>
-                        <FlatList
-                            style={{ marginLeft: "5%" }}
-                            renderItem={({ item, index }) =>
-                                <ListItem key={index} bottomDivider>
-                                    <ListItem.Content style={{ flexDirection: 'row', alignItems: 'center' }}>
-                                        <ListItem.Input
-                                            leftIcon={<Icon name="edit" />}
-                                            textAlign='left'
-                                            label={`Answer ${index + 1}`}
-                                            placeholder="Answer"
-                                            onChangeText={text => changeAnswerText(text, index)}
-                                            value={item.text}
-                                        />
-                                        <ListItem.CheckBox
-                                            checked={item.correct}
-                                            onPress={() => changeCorrect(index)}
-                                            checkedIcon="dot-circle-o"
-                                            checkedColor="green"
-                                            uncheckedIcon="circle-o"
-                                        />
-                                    </ListItem.Content>
-                                </ListItem>
-                            }
-                            keyExtractor={item => item.answerId}
-                            data={currentQuestion.question.answers}
-                        />
-                        <View style={{ flexDirection: 'row', justifyContent: 'space-around' }}>
-                            <Button
-                                icon={
-                                    <Icon
-                                        name="save"
-                                        type="font-awesome"
-                                        color="white"
-                                        size={18}
-                                        iconStyle={{ marginRight: 7 }}
-                                    />
-                                }
-                                title="Save"
-                                onPress={saveAnswers}
-                            />
-                            <Button
-                                onPress={toggleOverlay}
-                            >
-                                <Icon size={18} name="cancel" color="white" style={{ marginRight: 5 }} />
-                                Cancel
-                            </Button>
-                        </View>
-                    </Overlay>
                 </View>
             }
-            {
-                !dataFetched && <View style={{ justifyContent: 'center', flex: 1, alignItems: 'center' }}>
-                    <Button title="Solid" type="solid" loading style={{ borderRadius: 25, width: 80, height: 80 }} />
-                </View>
+            {!dataFetched && questions.length == 0 &&
+                <Loading />
             }
         </KeyboardAvoidingView>
     );
