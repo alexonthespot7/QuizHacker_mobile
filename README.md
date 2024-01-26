@@ -17,8 +17,10 @@
     - [iOS App Store](https://apps.apple.com/us/app/expo-go/id982107779) - iOS 13 and greater<br>
 2. Clone the project <br>```git clone https://github.com/alexonthespot7/QuizHackerMobile.git```<br>
 3. Run the following command in a terminal window in the complete directory:<br>
+```npx expo install```<br>
+4. Run the following command in a terminal window in the complete directory:<br>
 ```npx expo start```<br>
-4. Scan the created QR-code to open the project in the Expo Go app<br>
+5. Scan the created QR-code to open the project in the Expo Go app<br>
 (make sure that your mobile device is connected to the same network as the pc where you are running the expo app)
 
 ## Features
