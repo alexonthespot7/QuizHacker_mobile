@@ -1,7 +1,6 @@
 # QuizHacker_mobile
 > React Native Expo project which implements front-end side as mobile application for QuizHacker project with creating, taking quizzes functionalities.<br>
->
-> The back-end side of the application can be found [here](https://github.com/alexonthespot7/QuizHacker_back-end)
+
 
 ## Table of Contents
 * [Usage Guide](#usage-guide)
